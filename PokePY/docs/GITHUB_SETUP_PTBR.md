@@ -1,96 +1,54 @@
-# Publicação no GitHub do zero
+# Publicação correta no GitHub
 
-## 1. Instalar ferramentas
-
-- Git.
-- Python 3.11+.
-- Docker Desktop.
-- Conta no GitHub.
-- Conta no Render.
-
-## 2. Criar repositório local
+## Preparar o repositório local
 
 ```bash
 git init
+git status
 git add .
-git commit -m "Initial PokePY portfolio release"
+git commit -m "Initial portfolio release"
 ```
 
-## 3. Criar repositório no GitHub
+## Criar repositório remoto
 
-1. Abrir GitHub.
-2. Criar novo repositório.
-3. Nome sugerido: `pokepy`.
-4. Marcar como público para portfólio.
-5. Não criar README pelo GitHub, pois o projeto já contém README.
+No GitHub, criar um repositório chamado:
 
-## 4. Conectar repositório local
+```text
+PokePyGame
+```
+
+Depois conectar:
 
 ```bash
-git remote add origin https://github.com/seu-usuario/pokepy.git
 git branch -M main
+git remote add origin https://github.com/SEU_USUARIO/PokePyGame.git
 git push -u origin main
 ```
 
-## 5. Verificar GitHub Actions
+## Conferir antes de divulgar
 
-Abrir a aba **Actions** e aguardar a execução do workflow.
+- README abre corretamente.
+- O link de licença aparece.
+- O workflow de CI passa.
+- A pasta `dist/`, `.venv/`, `__pycache__/`, `.pytest_cache/` e arquivos `.env` não aparecem no GitHub.
+- O Render está com `/health` e `/docs` acessíveis.
+- O executável foi publicado em Releases.
 
-O resultado esperado é o pipeline de testes concluído com sucesso.
+## Commits recomendados
 
-## 6. Criar deploy no Render
-
-Usar o arquivo:
-
-```text
-render.yaml
+```bash
+git add .
+git commit -m "docs: improve practical setup and multiplayer flow"
+git commit -m "chore: simplify repository documentation"
+git commit -m "build: add hosted API client configuration script"
 ```
 
-Fluxo recomendado:
+## Atualizar URL da API no código-fonte
 
-1. Render > New + > Blueprint.
-2. Selecionar o repositório.
-3. Confirmar serviço Web e banco PostgreSQL.
-4. Aguardar build e deploy.
-5. Abrir `/health` e `/docs`.
+Depois do deploy, executar:
 
-## 7. Gerar executável com API pública
-
-```powershell
-.\scripts\build_windows.ps1 -ApiUrl "https://sua-api.onrender.com"
+```bash
+python scripts/configure_api_url.py --api-url "https://SEU-SERVICO.onrender.com"
 ```
 
-O pacote ficará em:
-
-```text
-dist/
-```
-
-## 8. Criar release no GitHub
-
-1. Abrir a aba **Releases**.
-2. Selecionar **Draft a new release**.
-3. Tag sugerida: `v4.0.0`.
-4. Título sugerido: `PokePY v4.0.0 - Portfolio Distribution Release`.
-5. Anexar o `.zip` do executável.
-6. Descrever mudanças principais:
-   - API hospedável no Render;
-   - suporte PostgreSQL cloud;
-   - executável com PyInstaller;
-   - documentação profissional;
-   - testes automatizados.
-
-## 9. Fixar no perfil
-
-Depois da publicação:
-
-1. Abrir o perfil do GitHub.
-2. Selecionar **Customize your pins**.
-3. Fixar o repositório `pokepy`.
-
-## 10. Descrição curta para currículo
-
-```text
-PokePY — jogo 2D em Python com API REST, persistência relacional e multiplayer.
-Projeto educacional com Pygame, FastAPI, SQLAlchemy, MySQL/PostgreSQL, Docker, Render, Pytest, CI e distribuição por executável com PyInstaller.
-```
+O arquivo `pokepy_client.json` pode ser mantido fora do Git quando contiver URL de ambiente pessoal. Para publicar uma configuração de demonstração, revisar antes de commitar.

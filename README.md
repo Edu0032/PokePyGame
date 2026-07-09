@@ -1,233 +1,199 @@
-<div align="center">
-
 # PokePY
 
-**Python 2D RPG client with FastAPI backend, persistent ranking, player progress and REST-based multiplayer.**
+Jogo 2D em Python com cliente Pygame, API REST em FastAPI, persistência relacional e multiplayer por matchmaking.
 
-![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![Pygame](https://img.shields.io/badge/Pygame-2D_Client-0A7E07?style=for-the-badge)
-![FastAPI](https://img.shields.io/badge/FastAPI-REST_API-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-ORM-D71F00?style=for-the-badge)
-![MySQL](https://img.shields.io/badge/MySQL-Local_DB-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Render_DB-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
-![Pytest](https://img.shields.io/badge/Pytest-Tested-0A9EDC?style=for-the-badge&logo=pytest&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Render](https://img.shields.io/badge/Render-Deploy-46E3B7?style=for-the-badge&logo=render&logoColor=black)
-![PyInstaller](https://img.shields.io/badge/PyInstaller-Executable-5B5B5B?style=for-the-badge)
+![Python](https://img.shields.io/badge/Python-3.11+-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-REST-green)
+![Pygame](https://img.shields.io/badge/Pygame-client-orange)
+![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-ORM-red)
+![Pytest](https://img.shields.io/badge/tests-pytest-blueviolet)
+![Docker](https://img.shields.io/badge/Docker-ready-blue)
+![Render](https://img.shields.io/badge/Render-deployable-black)
 
-[![Evaluator Guide](https://img.shields.io/badge/Quick_Evaluation-Guide-blue?style=for-the-badge)](PokePY/docs/EVALUATOR_GUIDE.md)
-[![Architecture](https://img.shields.io/badge/Docs-Architecture-purple?style=for-the-badge)](PokePY/docs/ARCHITECTURE.md)
-[![API](https://img.shields.io/badge/Docs-API_Reference-green?style=for-the-badge)](PokePY/docs/API_REFERENCE.md)
-[![Deployment](https://img.shields.io/badge/Docs-Render_Deploy-46E3B7?style=for-the-badge)](PokePY/docs/RENDER_DEPLOYMENT_PTBR.md)
-[![Distribution](https://img.shields.io/badge/Docs-Executable-orange?style=for-the-badge)](PokePY/docs/DISTRIBUTION_GUIDE_PTBR.md)
-[![Technical Inventory](https://img.shields.io/badge/Docs-Technical_Inventory-black?style=for-the-badge)](PokePY/docs/TECHNICAL_INVENTORY.md)
+## Visão geral
 
-</div>
+PokePY é um projeto educacional de desenvolvimento de software com duas partes principais:
 
-## Overview
+- **Cliente do jogo**: aplicação desktop em Python/Pygame, com exploração, batalhas, inventário, seleção de time, ranking e tela multiplayer.
+- **Backend**: API REST em FastAPI responsável por ranking, progresso do jogador, matchmaking e sincronização de ações multiplayer.
 
-PokePY is an educational software project that combines a Pygame client with a FastAPI backend. The application includes local gameplay, player progress, a fastest-clear ranking, online matchmaking, turn-based multiplayer actions, automated tests, Docker-based development infrastructure and cloud deployment support.
+O cliente não acessa o banco de dados diretamente. Em modo online, ele envia requisições HTTP para a API. A API valida as regras, grava os dados e devolve o estado atualizado ao cliente.
 
-The codebase is organized to demonstrate software architecture rather than isolated scripts. The game client uses a state machine; business rules live in service classes; persistence is accessed through repository contracts; the API exposes REST endpoints; SQLAlchemy handles relational persistence; Alembic manages migrations; PyInstaller builds a player-friendly executable.
+> Projeto fan-made para fins educacionais. Os assets podem ser substituídos por recursos autorais em uma distribuição comercial.
 
-> Public repository note: this is a fan-made educational programming project. Assets and names are used for study purposes and can be replaced by original assets for commercial or production use.
+## O que o projeto demonstra
 
-## Evaluation snapshot
+| Área | Demonstração prática |
+| --- | --- |
+| Python | POO, dataclasses, enums, type hints, organização em pacotes e serviços |
+| Game dev | Loop Pygame, telas, sprites, mapa, colisão, batalha e inventário |
+| Arquitetura | State Machine, camadas de domínio, serviços, infraestrutura e UI |
+| Backend | FastAPI, rotas REST, schemas Pydantic, tratamento de erros e OpenAPI |
+| Banco de dados | SQLAlchemy, repositórios, migrações Alembic, MySQL local e PostgreSQL no Render |
+| Multiplayer | Fila de matchmaking, sessão de partida, turno, validação de ações e histórico |
+| Distribuição | Build com PyInstaller e configuração de API hospedada |
+| Qualidade | Pytest, CI no GitHub Actions, Docker Compose e documentação técnica |
 
-| Area | Evidence in the repository |
-|---|---|
-| Python | Type hints, dataclasses, enums, modular packages, services and contracts |
-| Game development | Pygame loop, sprites, map masks, state machine, battle UI and inventory UI |
-| Backend | FastAPI application, routers, Pydantic schemas, error handlers and OpenAPI docs |
-| Persistence | JSON local fallback, SQLAlchemy repositories, MySQL for local Docker and PostgreSQL for Render |
-| Multiplayer | Matchmaking queue, match session snapshots, turn validation, action history and idempotent `action_id` |
-| Distribution | PyInstaller build scripts, bundled assets and hosted API configuration file |
-| Testing | Pytest, fixtures, API integration tests, repository tests and coverage command |
-| DevOps | Docker Compose, Render Blueprint, Alembic migrations, GitHub Actions and pre-commit |
-
-## Architecture
+## Fluxo online na prática
 
 ```mermaid
-graph TD
-    Player[Player] --> Executable[PokePY executable or source client]
-    Executable --> Game[Pygame game client]
-    Game --> StateMachine[State machine]
-    StateMachine --> Services[Service layer]
-    Services --> Contracts[Repository contracts]
-    Contracts --> LocalJSON[Local JSON fallback]
-    Contracts --> ApiGateway[HTTP API gateway]
-    ApiGateway --> RenderAPI[FastAPI on Render]
-    RenderAPI --> SQLAlchemy[SQLAlchemy repositories]
-    SQLAlchemy --> RenderDB[(Render PostgreSQL)]
-    RenderAPI -. local development .-> MySQL[(Docker MySQL)]
+sequenceDiagram
+    participant Player1 as Cliente P1
+    participant Player2 as Cliente P2
+    participant API as FastAPI / Render
+    participant DB as Banco relacional
+
+    Player1->>API: Entra na fila multiplayer
+    API->>DB: Cria ticket P1
+    Player2->>API: Entra na fila multiplayer
+    API->>DB: Cria ticket P2 e partida
+    API-->>Player1: Retorna match_id
+    API-->>Player2: Retorna match_id
+    Player1->>API: Envia ação de ataque
+    API->>API: Valida turno e aplica regra
+    API->>DB: Salva snapshot e histórico
+    Player2->>API: Consulta estado atualizado
+    API-->>Player2: Retorna HP, turno e ações
 ```
 
-The Pygame client never connects directly to the production database. The executable communicates with the hosted API. The API validates requests, applies rules and persists data. Local JSON remains available as a fallback for offline development.
+## Banco de dados e API
 
-## Project structure
+A API persiste três tipos principais de informação:
+
+1. **Ranking**: menor tempo para concluir o jogo.
+2. **Progresso do jogador**: nome, zona, posição, itens e time atual.
+3. **Multiplayer**: tickets de fila, partidas e ações executadas.
+
+Endpoints principais:
+
+| Método | Rota | Função |
+| --- | --- | --- |
+| `GET` | `/health` | Verifica se a API está online |
+| `GET` | `/health/ready` | Verifica se API e banco estão prontos |
+| `GET` | `/leaderboard` | Lista os melhores tempos |
+| `POST` | `/leaderboard` | Registra uma vitória no ranking |
+| `PUT` | `/players/{player_id}/progress` | Salva progresso do jogador |
+| `GET` | `/players/{player_id}/progress` | Lê progresso salvo |
+| `POST` | `/multiplayer/matchmaking/join` | Entra na fila multiplayer |
+| `GET` | `/multiplayer/matchmaking/status/{ticket_id}` | Consulta status da fila |
+| `GET` | `/multiplayer/matches/{match_id}` | Lê estado da partida |
+| `POST` | `/multiplayer/matches/{match_id}/actions` | Envia ataque, cura, troca ou saída |
+
+Documentação detalhada: [`PokePY/docs/API_DATABASE_MULTIPLAYER.md`](PokePY/docs/API_DATABASE_MULTIPLAYER.md).
+
+## Estrutura do repositório
 
 ```text
 PokePY/
-  api/                    FastAPI application, routes, schemas and configuration
-  data/                   Static catalogs used by the game
-  distribution/           Runtime configuration helpers for source and executable builds
-  domain/                 Core entities and game session models
-  game/                   State machine and game-state handlers
-  infrastructure/         JSON repositories, HTTP gateway, SQLAlchemy repositories and assets
-  services/               Business rules, contracts, multiplayer rules and serializers
-  ui/                     Pygame views, widgets, fonts, battle and multiplayer screens
-  docs/                   Architecture, API, deployment, distribution and study material
-migrations/               Alembic migration scripts
-scripts/                  Setup, tests, local execution and executable build scripts
-packaging/                Client configuration examples for packaged releases
-.github/                  CI, issue templates, PR template and dependency updates
+  api/                 Aplicação FastAPI, rotas, schemas e dependências
+  data/                Catálogos estáticos do jogo
+  distribution/        Leitura de configuração para código-fonte e executável
+  domain/              Entidades, sessão e modelos de domínio
+  game/                State machine e estados do jogo
+  infrastructure/      Repositórios JSON, HTTP, SQLAlchemy e assets
+  services/            Regras de negócio, ranking, progresso e multiplayer
+  ui/                  Telas e componentes Pygame
+  sprites/             Imagens do jogo
+  backgrounds/         Fundos de batalha
+  mapa/                Mapas e máscaras de colisão
+migrations/            Migrações Alembic
+scripts/               Execução, testes, deploy e build de executável
+packaging/             Exemplos de configuração do cliente
+PokePY/docs/           Documentação técnica objetiva
 ```
 
-## Two execution modes
-
-### Player mode: executable
-
-The release executable is built with PyInstaller. It includes the game code, dependencies and visual assets. Ranking, progress and multiplayer use the hosted API URL embedded in `pokepy_client.json` during the build.
-
-```powershell
-pip install -r requirements-build.txt
-python scripts/build_executable.py --api-url https://your-pokepy-api.onrender.com
-```
-
-The generated package appears in `dist/`.
-
-### Developer mode: full source
-
-The complete source can run locally with JSON storage, Docker + MySQL, or a hosted Render API.
+## Rodar localmente como desenvolvedor
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements-dev.txt
-python -m PokePY.main
-```
-
-Windows PowerShell:
-
-```powershell
-python -m venv .venv
+# Windows PowerShell:
 .\.venv\Scripts\Activate.ps1
+# Linux/macOS:
+# source .venv/bin/activate
+
 pip install -r requirements-dev.txt
 python -m PokePY.main
 ```
 
-## Local API + MySQL
+Por padrão, o jogo roda com arquivos JSON locais. Isso permite testar o cliente sem API e sem banco.
+
+## Rodar API local com MySQL
 
 ```bash
 docker compose up --build
 ```
 
-API docs:
+Depois acesse:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-Run the client against the local API:
-
-```bash
-export POKEPY_BACKEND_MODE=api
-export POKEPY_LEADERBOARD_BACKEND=api
-export POKEPY_PROGRESS_BACKEND=api
-export POKEPY_API_BASE_URL=http://127.0.0.1:8000
-python -m PokePY.main
-```
-
-Windows PowerShell:
+Rodar o cliente conectado à API local:
 
 ```powershell
-$env:POKEPY_BACKEND_MODE="api"
-$env:POKEPY_LEADERBOARD_BACKEND="api"
-$env:POKEPY_PROGRESS_BACKEND="api"
-$env:POKEPY_API_BASE_URL="http://127.0.0.1:8000"
-python -m PokePY.main
+.\scriptsun_game_online.ps1 -ApiUrl "http://127.0.0.1:8000"
 ```
 
-## Render deployment
-
-The repository includes a Render Blueprint:
-
-```text
-render.yaml
-```
-
-The blueprint defines:
-
-- one FastAPI web service;
-- one PostgreSQL database;
-- Alembic migration execution before server startup;
-- health check path;
-- environment variables for database connection and API behavior.
-
-Deployment guide:
-
-```text
-PokePY/docs/RENDER_DEPLOYMENT_PTBR.md
-```
-
-## API endpoints
-
-| Method | Path | Purpose |
-|---|---|---|
-| `GET` | `/health` | Basic service status |
-| `GET` | `/health/ready` | Database readiness check |
-| `POST` | `/leaderboard` | Save a completed run time |
-| `GET` | `/leaderboard` | List best times |
-| `GET` | `/leaderboard/page` | Paginated ranking |
-| `PUT` | `/players/{player_id}/progress` | Save player progress |
-| `GET` | `/players/{player_id}/progress` | Load player progress |
-| `POST` | `/multiplayer/matchmaking/join` | Enter matchmaking queue |
-| `GET` | `/multiplayer/matchmaking/status/{ticket_id}` | Poll matchmaking status |
-| `GET` | `/multiplayer/matches/{match_id}` | Read match snapshot |
-| `POST` | `/multiplayer/matches/{match_id}/actions` | Submit a multiplayer action |
-| `POST` | `/multiplayer/matches/{match_id}/leave` | Leave a match |
-
-Full API reference:
-
-```text
-PokePY/docs/API_REFERENCE.md
-```
-
-## Tests and quality
+Linux/macOS:
 
 ```bash
+./scripts/run_game_online.sh "http://127.0.0.1:8000"
+```
+
+## Deploy da API no Render
+
+O repositório inclui `render.yaml`, que cria:
+
+- um serviço web FastAPI;
+- um banco PostgreSQL gerenciado;
+- variáveis de ambiente;
+- comando de migração Alembic;
+- health check.
+
+Guia completo: [`PokePY/docs/RENDER_DEPLOY_PTBR.md`](PokePY/docs/RENDER_DEPLOY_PTBR.md).
+
+## Configurar o cliente com a API hospedada
+
+Depois que a API estiver no Render, use a URL pública no cliente:
+
+```bash
+python scripts/configure_api_url.py --api-url "https://SEU-SERVICO.onrender.com"
+```
+
+Para rodar pelo código-fonte:
+
+```powershell
+.\scriptsun_game_online.ps1 -ApiUrl "https://SEU-SERVICO.onrender.com"
+```
+
+Para gerar executável já apontando para a API hospedada:
+
+```bash
+pip install -r requirements-build.txt
+python scripts/build_executable.py --api-url "https://SEU-SERVICO.onrender.com"
+```
+
+Guia completo: [`PokePY/docs/EXECUTABLE_PTBR.md`](PokePY/docs/EXECUTABLE_PTBR.md).
+
+## Testes
+
+```bash
+pip install -r requirements-dev.txt
 pytest
-pytest --cov=PokePY --cov-report=term-missing
-ruff check PokePY tests
-black --check PokePY tests
-mypy PokePY
 ```
 
-Windows shortcut:
-
-```powershell
-.\scripts\run_tests.ps1
-```
-
-Linux/macOS shortcut:
+Com cobertura:
 
 ```bash
-./scripts/run_tests.sh
+pytest --cov=PokePY --cov-report=term-missing
 ```
 
-## Documentation map
+## Publicação no GitHub
 
-| File | Purpose |
-|---|---|
-| `PokePY/docs/EVALUATOR_GUIDE.md` | Fast technical reading for evaluators |
-| `PokePY/docs/ARCHITECTURE.md` | Code architecture, layers and design decisions |
-| `PokePY/docs/API_REFERENCE.md` | Endpoint reference and payload examples |
-| `PokePY/docs/RENDER_DEPLOYMENT_PTBR.md` | Render hosting guide |
-| `PokePY/docs/DISTRIBUTION_GUIDE_PTBR.md` | Executable build and release guide |
-| `PokePY/docs/TECHNICAL_INVENTORY.md` | Technologies, concepts and examples by category |
-| `PokePY/docs/STUDY_GUIDE_PTBR.md` | Study guide for the stack used in the project |
-| `PokePY/docs/GITHUB_SETUP_PTBR.md` | GitHub publication workflow from zero |
+Guia prático: [`PokePY/docs/GITHUB_SETUP_PTBR.md`](PokePY/docs/GITHUB_SETUP_PTBR.md).
 
-## License and assets
+## Resumo para currículo
 
-The project source code can use an open-source license defined in `LICENSE`. Visual assets may have separate restrictions and should be replaced by original assets for commercial distribution.
+**PokePY — jogo 2D com API REST, banco de dados e multiplayer**  
+Projeto educacional em Python com Pygame, FastAPI, SQLAlchemy, MySQL/PostgreSQL, Docker e Pytest. Inclui arquitetura em camadas, state machine, ranking persistente, progresso do jogador, matchmaking multiplayer, API REST documentada e build de executável com PyInstaller.
