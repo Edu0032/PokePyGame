@@ -1,0 +1,36 @@
+name: Feature request
+description: Propor melhoria ou nova funcionalidade
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivação
+      description: Explique o problema ou oportunidade.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposta
+      description: Descreva a solução desejada.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      options:
+        - Jogo/Pygame
+        - API/FastAPI
+        - Banco/SQLAlchemy
+        - Multiplayer
+        - Testes
+        - Documentação
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Observações técnicas

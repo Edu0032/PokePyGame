@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: pokepy-api
+    runtime: python
+    plan: free
+    buildCommand: pip install --upgrade pip && pip install -r requirements-api.txt
+    startCommand: alembic upgrade head && uvicorn PokePY.api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: POKEPY_DATABASE_URL
+        fromDatabase:
+          name: pokepy-db
+          property: connectionString
+      - key: POKEPY_AUTO_CREATE_TABLES
+        value: false
+      - key: POKEPY_LOG_LEVEL
+        value: INFO
+      - key: POKEPY_CORS_ORIGINS
+        value: '["*"]'
+
+databases:
+  - name: pokepy-db
+    plan: free

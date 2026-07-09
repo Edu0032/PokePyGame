@@ -1,0 +1,4 @@
+$env:POKEPY_BACKEND_MODE="json"
+$env:POKEPY_LEADERBOARD_BACKEND="json"
+$env:POKEPY_PROGRESS_BACKEND="json"
+python -m PokePY.main

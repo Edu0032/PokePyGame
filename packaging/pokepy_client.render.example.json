@@ -1,0 +1,9 @@
+{
+  "backend_mode": "api",
+  "leaderboard_backend": "api",
+  "progress_backend": "api",
+  "multiplayer_backend": "api",
+  "api_base_url": "https://pokepy-api.onrender.com",
+  "api_timeout_seconds": 8,
+  "api_json_fallback": true
+}

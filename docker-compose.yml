@@ -1,0 +1,40 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: pokepy-mysql
+    environment:
+      MYSQL_DATABASE: pokepy
+      MYSQL_USER: pokepy_user
+      MYSQL_PASSWORD: pokepy_password
+      MYSQL_ROOT_PASSWORD: root_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - pokepy_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: pokepy-api
+    command: sh -c "alembic upgrade head && python -m PokePY.api.main"
+    environment:
+      POKEPY_DATABASE_URL: mysql+pymysql://pokepy_user:pokepy_password@mysql:3306/pokepy
+      POKEPY_AUTO_CREATE_TABLES: "false"
+      POKEPY_API_HOST: 0.0.0.0
+      POKEPY_API_PORT: 8000
+      POKEPY_API_RELOAD: "0"
+      POKEPY_LOG_LEVEL: INFO
+    ports:
+      - "8000:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  pokepy_mysql_data:

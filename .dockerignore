@@ -1,0 +1,17 @@
+.git
+.github
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+coverage.xml
+htmlcov
+.venv
+venv
+PokePY/saves
+.env
+.env.*
+dist
+build

@@ -1,0 +1,9 @@
+{
+  "backend_mode": "json",
+  "leaderboard_backend": "json",
+  "progress_backend": "json",
+  "multiplayer_backend": "api",
+  "api_base_url": "http://127.0.0.1:8000",
+  "api_timeout_seconds": 5,
+  "api_json_fallback": true
+}
