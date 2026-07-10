@@ -7,8 +7,8 @@ Jogo 2D em Python com cliente Pygame, API REST em FastAPI, persistência relacio
 ![Pygame](https://img.shields.io/badge/Pygame-client-orange)
 ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-ORM-red)
 ![Pytest](https://img.shields.io/badge/tests-pytest-blueviolet)
-![Docker](https://img.shields.io/badge/Docker-ready-blue)
-![Render](https://img.shields.io/badge/Render-deployable-black)
+![Render](https://img.shields.io/badge/API-Render-black)
+![Supabase](https://img.shields.io/badge/DB-Supabase_PostgreSQL-3ECF8E)
 
 ## Visão geral
 
@@ -21,6 +21,28 @@ O cliente não acessa o banco de dados diretamente. Em modo online, ele envia re
 
 > Projeto fan-made para fins educacionais. Os assets podem ser substituídos por recursos autorais em uma distribuição comercial.
 
+## Download do executável
+
+A forma mais simples de jogar é baixar a versão para Windows pela página de releases:
+
+[Baixar PokePY para Windows](https://github.com/Edu0032/PokePyGame/releases/latest)
+
+A versão executável já vem configurada para se conectar à API hospedada:
+
+```text
+Executável Windows -> API FastAPI no Render -> PostgreSQL no Supabase
+```
+
+Não é necessário instalar Python, banco de dados, Docker ou rodar a API localmente.
+
+A API pública configurada para esta versão é:
+
+```text
+https://pokepygame.onrender.com
+```
+
+Serviços gratuitos podem levar alguns segundos para responder na primeira conexão após um período de inatividade.
+
 ## O que o projeto demonstra
 
 | Área | Demonstração prática |
@@ -29,19 +51,19 @@ O cliente não acessa o banco de dados diretamente. Em modo online, ele envia re
 | Game dev | Loop Pygame, telas, sprites, mapa, colisão, batalha e inventário |
 | Arquitetura | State Machine, camadas de domínio, serviços, infraestrutura e UI |
 | Backend | FastAPI, rotas REST, schemas Pydantic, tratamento de erros e OpenAPI |
-| Banco de dados | SQLAlchemy, repositórios, migrações Alembic, MySQL local e PostgreSQL no Render |
+| Banco de dados | SQLAlchemy, repositórios, migrações Alembic, MySQL local e PostgreSQL online |
 | Multiplayer | Fila de matchmaking, sessão de partida, turno, validação de ações e histórico |
 | Distribuição | Build com PyInstaller e configuração de API hospedada |
 | Qualidade | Pytest, CI no GitHub Actions, Docker Compose e documentação técnica |
 
-## Fluxo online na prática
+## Fluxo multiplayer na prática
 
 ```mermaid
 sequenceDiagram
     participant Player1 as Cliente P1
     participant Player2 as Cliente P2
     participant API as FastAPI / Render
-    participant DB as Banco relacional
+    participant DB as PostgreSQL / Supabase
 
     Player1->>API: Entra na fila multiplayer
     API->>DB: Cria ticket P1
@@ -49,20 +71,22 @@ sequenceDiagram
     API->>DB: Cria ticket P2 e partida
     API-->>Player1: Retorna match_id
     API-->>Player2: Retorna match_id
-    Player1->>API: Envia ação de ataque
+    Player1->>API: Envia ação de ataque, cura ou troca
     API->>API: Valida turno e aplica regra
     API->>DB: Salva snapshot e histórico
     Player2->>API: Consulta estado atualizado
     API-->>Player2: Retorna HP, turno e ações
 ```
 
-## Banco de dados e API
+O multiplayer usa polling HTTP. Cada cliente consulta a API periodicamente e envia ações somente quando é seu turno. A API mantém o estado oficial da partida, evitando que cada cliente tenha uma versão diferente do combate.
 
-A API persiste três tipos principais de informação:
+## API e banco de dados
+
+A API persiste três grupos principais de dados:
 
 1. **Ranking**: menor tempo para concluir o jogo.
 2. **Progresso do jogador**: nome, zona, posição, itens e time atual.
-3. **Multiplayer**: tickets de fila, partidas e ações executadas.
+3. **Multiplayer**: tickets de fila, partidas, estado atual e histórico de ações.
 
 Endpoints principais:
 
@@ -98,7 +122,7 @@ PokePY/
   mapa/                Mapas e máscaras de colisão
 migrations/            Migrações Alembic
 scripts/               Execução, testes, deploy e build de executável
-packaging/             Exemplos de configuração do cliente
+packaging/             Configuração usada no build do executável
 PokePY/docs/           Documentação técnica objetiva
 ```
 
@@ -106,16 +130,25 @@ PokePY/docs/           Documentação técnica objetiva
 
 ```bash
 python -m venv .venv
-# Windows PowerShell:
-.\.venv\Scripts\Activate.ps1
-# Linux/macOS:
-# source .venv/bin/activate
+```
 
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements-dev.txt
 python -m PokePY.main
 ```
 
-Por padrão, o jogo roda com arquivos JSON locais. Isso permite testar o cliente sem API e sem banco.
+Linux/macOS:
+
+```bash
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+python -m PokePY.main
+```
+
+Por padrão, o jogo pode rodar com arquivos JSON locais. Isso permite testar o cliente sem API e sem banco.
 
 ## Rodar API local com MySQL
 
@@ -129,10 +162,10 @@ Depois acesse:
 http://127.0.0.1:8000/docs
 ```
 
-Rodar o cliente conectado à API local:
+Rodar o cliente conectado à API local no Windows:
 
 ```powershell
-.\scriptsun_game_online.ps1 -ApiUrl "http://127.0.0.1:8000"
+.\scripts\run_game_online.ps1 -ApiUrl "http://127.0.0.1:8000"
 ```
 
 Linux/macOS:
@@ -143,36 +176,51 @@ Linux/macOS:
 
 ## Deploy da API no Render
 
-O repositório inclui `render.yaml`, que cria:
+O deploy online usa:
 
-- um serviço web FastAPI;
-- um banco PostgreSQL gerenciado;
-- variáveis de ambiente;
-- comando de migração Alembic;
-- health check.
+```text
+Render Web Service -> FastAPI
+Supabase Session Pooler -> PostgreSQL
+```
+
+O arquivo `render.yaml` configura o serviço web. A URL do banco fica somente nas variáveis de ambiente do Render.
 
 Guia completo: [`PokePY/docs/RENDER_DEPLOY_PTBR.md`](PokePY/docs/RENDER_DEPLOY_PTBR.md).
 
 ## Configurar o cliente com a API hospedada
 
-Depois que a API estiver no Render, use a URL pública no cliente:
+A URL pública da API desta versão é:
 
-```bash
-python scripts/configure_api_url.py --api-url "https://SEU-SERVICO.onrender.com"
+```text
+https://pokepygame.onrender.com
 ```
 
-Para rodar pelo código-fonte:
+Para gravar essa URL nos arquivos usados pelo código-fonte e pelo executável:
+
+```bash
+python scripts/configure_api_url.py --api-url "https://pokepygame.onrender.com"
+```
+
+Isso atualiza:
+
+```text
+pokepy_client.json
+packaging/pokepy_client.json
+```
+
+## Gerar executável
+
+Windows:
 
 ```powershell
-.\scriptsun_game_online.ps1 -ApiUrl "https://SEU-SERVICO.onrender.com"
-```
-
-Para gerar executável já apontando para a API hospedada:
-
-```bash
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install --upgrade pip
 pip install -r requirements-build.txt
-python scripts/build_executable.py --api-url "https://SEU-SERVICO.onrender.com"
+python scripts/build_executable.py --api-url "https://pokepygame.onrender.com" --onedir
 ```
+
+O resultado fica em `dist/`. Compacte a pasta gerada e anexe o `.zip` em uma GitHub Release.
 
 Guia completo: [`PokePY/docs/EXECUTABLE_PTBR.md`](PokePY/docs/EXECUTABLE_PTBR.md).
 

@@ -7,17 +7,17 @@ services:
     startCommand: alembic upgrade head && uvicorn PokePY.api.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.15
       - key: POKEPY_DATABASE_URL
-        fromDatabase:
-          name: pokepy-db
-          property: connectionString
+        sync: false
+      - key: DATABASE_URL
+        sync: false
       - key: POKEPY_AUTO_CREATE_TABLES
-        value: false
+        value: "false"
       - key: POKEPY_LOG_LEVEL
         value: INFO
       - key: POKEPY_CORS_ORIGINS
         value: '["*"]'
-
-databases:
-  - name: pokepy-db
-    plan: free
+      - key: POKEPY_ENV
+        value: production
