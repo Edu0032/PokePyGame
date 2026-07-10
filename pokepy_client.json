@@ -4,6 +4,6 @@
   "progress_backend": "api",
   "multiplayer_backend": "api",
   "api_base_url": "https://pokepygame.onrender.com",
-  "api_timeout_seconds": 65,
+  "api_timeout_seconds": 65.0,
   "api_json_fallback": false
 }

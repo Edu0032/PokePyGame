@@ -73,11 +73,19 @@ def config_value(key: str, default: str) -> str:
     env_value = os.getenv(f"POKEPY_{key.upper()}")
     if env_value is not None and env_value != "":
         return env_value
+
     data = load_client_config()
-    value = data.get(key.lower()) or data.get(key)
-    if value is None:
-        return default
-    return str(value)
+
+    lower_key = key.lower()
+    if lower_key in data:
+        value = data[lower_key]
+        return default if value is None else str(value)
+
+    if key in data:
+        value = data[key]
+        return default if value is None else str(value)
+
+    return default
 
 
 def config_bool(key: str, default: bool) -> bool:
