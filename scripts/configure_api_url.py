@@ -21,13 +21,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--timeout",
         type=float,
-        default=8.0,
-        help="HTTP timeout used by the game client.",
+        default=65.0,
+        help="HTTP timeout used by the game client. The default supports Render free cold starts.",
     )
     parser.add_argument(
-        "--no-fallback",
+        "--fallback",
         action="store_true",
-        help="Disable local JSON fallback when the online API is temporarily unavailable.",
+        help="Enable local JSON fallback when the online API is unavailable. Disabled by default for the hosted release.",
     )
     return parser.parse_args()
 
@@ -57,7 +57,7 @@ def main() -> None:
     config = build_config(
         api_url=args.api_url,
         timeout=args.timeout,
-        fallback=not args.no_fallback,
+        fallback=args.fallback,
     )
 
     write_json(CLIENT_CONFIG_PATH, config)

@@ -15,7 +15,9 @@ CLIENT_CONFIG_FILE = RUNTIME_DIR / "pokepy_client.json"
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build a distributable PokePY executable with PyInstaller.")
-    parser.add_argument("--api-url", default=os.getenv("POKEPY_API_BASE_URL", "http://127.0.0.1:8000"))
+    parser.add_argument("--api-url", default=os.getenv("POKEPY_API_BASE_URL", "https://pokepygame.onrender.com"))
+    parser.add_argument("--timeout", type=float, default=65.0, help="HTTP timeout used by the packaged game client.")
+    parser.add_argument("--fallback", action="store_true", help="Enable local JSON fallback when the online API is unavailable.")
     parser.add_argument("--name", default="PokePY")
     parser.add_argument("--windowed", action="store_true", default=True)
     parser.add_argument("--console", action="store_true")
@@ -32,7 +34,7 @@ def add_data_arg(source: Path, target: str) -> str:
     return f"{source}{data_separator()}{target}"
 
 
-def write_runtime_config(api_url: str) -> None:
+def write_runtime_config(api_url: str, timeout: float, fallback: bool) -> None:
     RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
     CLIENT_CONFIG_FILE.write_text(
         json.dumps(
@@ -42,8 +44,8 @@ def write_runtime_config(api_url: str) -> None:
                 "progress_backend": "api",
                 "multiplayer_backend": "api",
                 "api_base_url": api_url.rstrip("/"),
-                "api_timeout_seconds": 8,
-                "api_json_fallback": True,
+                "api_timeout_seconds": timeout,
+                "api_json_fallback": fallback,
             },
             indent=2,
             ensure_ascii=False,
@@ -86,7 +88,7 @@ def ensure_pyinstaller_available() -> None:
 
 def main() -> None:
     args = parse_args()
-    write_runtime_config(args.api_url)
+    write_runtime_config(args.api_url, args.timeout, args.fallback)
     ensure_pyinstaller_available()
     subprocess.run(build_command(args), cwd=PROJECT_ROOT, check=True)
     print(f"Executable package created in: {PROJECT_ROOT / 'dist'}")

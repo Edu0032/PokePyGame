@@ -3,7 +3,7 @@ import time
 
 import pygame
 
-from PokePY.config import LEADERBOARD_CONFIG, PLAYER_CONFIG, SCREEN_CONFIG
+from PokePY.config import API_CONFIG, LEADERBOARD_CONFIG, PLAYER_CONFIG, SCREEN_CONFIG
 from PokePY.data.zones import ZONE_DEFINITIONS
 from PokePY.domain.factories import PokemonFactory
 from PokePY.domain.game_state import GameState
@@ -65,10 +65,15 @@ class Game:
     def complete_game(self) -> None:
         if not self.game_finished:
             self.session.finish()
-            result = self.leaderboard_service.register_completion(self.session.player_name, self.session.elapsed_seconds)
-            position_text = f"Posição no ranking: #{result.position}" if result.position else "Tempo salvo no ranking."
+            elapsed_text = format_seconds(self.session.elapsed_seconds)
+            try:
+                result = self.leaderboard_service.register_completion(self.session.player_name, self.session.elapsed_seconds)
+                position_text = f"Posição no ranking: #{result.position}" if result.position else "Tempo salvo no ranking."
+                self.leaderboard_subtitle = f"{self.session.player_name} zerou em {format_seconds(result.entry.elapsed_seconds)}. {position_text}"
+            except Exception as error:
+                self.leaderboard_subtitle = f"{self.session.player_name} zerou em {elapsed_text}, mas o ranking online não foi salvo. Verifique {API_CONFIG.base_url}/health/ready."
+                print(f"[PokePY leaderboard] Falha ao salvar placar online: {error}")
             self.leaderboard_title = "Jogo concluído!"
-            self.leaderboard_subtitle = f"{self.session.player_name} zerou em {format_seconds(result.entry.elapsed_seconds)}. {position_text}"
             self.leaderboard_footer = "ENTER/R para jogar novamente ou ESC/Q para ver os créditos e sair"
             self.game_finished = True
         self.state = GameState.LEADERBOARD

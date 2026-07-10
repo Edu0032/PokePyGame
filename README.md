@@ -208,6 +208,19 @@ pokepy_client.json
 packaging/pokepy_client.json
 ```
 
+
+### Verificar conexão online
+
+Antes de gerar o executável, é possível testar a API e o banco configurados no Render/Supabase:
+
+    python scripts/check_online_api.py
+
+Para validar gravação real no ranking online:
+
+    python scripts/check_online_api.py --write-test-score
+
+Esse teste insere um registro de verificação na tabela `leaderboard_scores`.
+
 ## Gerar executável
 
 Windows:

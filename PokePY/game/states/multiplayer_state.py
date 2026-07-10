@@ -1,5 +1,6 @@
 import pygame
 
+from PokePY.config import API_CONFIG
 from PokePY.domain.game_state import GameState
 from PokePY.services.multiplayer_contracts import MultiplayerAction, MultiplayerActionType
 from PokePY.ui.widgets import is_button_clicked
@@ -56,8 +57,10 @@ class MultiplayerLobbyState:
             game.multiplayer_error = None
             if game.multiplayer_ticket.match_id:
                 self._open_match(game, game.multiplayer_ticket.match_id)
-        except Exception:
-            game.multiplayer_error = "API indisponível. Suba o servidor com docker compose up --build."
+        except Exception as error:
+            game.multiplayer_error = f"API indisponível em {API_CONFIG.base_url}. Verifique /health/ready."
+            game.multiplayer_status_text = "Falha ao conectar no servidor online."
+            print(f"[PokePY multiplayer] Falha ao entrar na fila: {error}")
             game.multiplayer_ticket = None
 
     def _poll_ticket(self, game) -> None:
@@ -70,8 +73,9 @@ class MultiplayerLobbyState:
             game.multiplayer_ticket = ticket
             if ticket.match_id:
                 self._open_match(game, ticket.match_id)
-        except Exception:
+        except Exception as error:
             game.multiplayer_error = "Falha ao consultar a fila multiplayer."
+            print(f"[PokePY multiplayer] Falha ao consultar fila: {error}")
 
     def _open_match(self, game, match_id: str) -> None:
         match = game.multiplayer_gateway.read_match(match_id)
@@ -108,7 +112,8 @@ class MultiplayerBattleState:
             if match is not None:
                 game.multiplayer_match = match
                 self._sync_player(game)
-        except Exception:
+        except Exception as error:
+            print(f"[PokePY multiplayer] Falha ao atualizar partida: {error}")
             return
 
     def _handle_key(self, game, event) -> None:
@@ -165,8 +170,9 @@ class MultiplayerBattleState:
             game.multiplayer_match = game.multiplayer_gateway.send_action(action)
             self._sync_player(game)
             game.save_progress()
-        except Exception:
+        except Exception as error:
             game.multiplayer_error = "Não foi possível enviar a ação para a API."
+            print(f"[PokePY multiplayer] Falha ao enviar ação: {error}")
 
     def _leave_match(self, game) -> None:
         if game.multiplayer_match is None:
@@ -175,7 +181,8 @@ class MultiplayerBattleState:
             game.multiplayer_match = game.multiplayer_gateway.leave_match(game.multiplayer_match.match_id, game.session.player_id)
             self._sync_player(game)
             game.save_progress()
-        except Exception:
+        except Exception as error:
+            print(f"[PokePY multiplayer] Falha ao sair da partida: {error}")
             return
 
     def _finish_screen(self, game) -> None:
