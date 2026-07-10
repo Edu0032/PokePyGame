@@ -11,7 +11,7 @@ PACKAGING_CONFIG_PATH = PROJECT_ROOT / "packaging" / "pokepy_client.json"
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Configure the hosted PokePY API URL for source and executable builds.")
-    parser.add_argument("--api-url", required=True, help="Hosted API URL, for example https://pokepy-api.onrender.com")
+    parser.add_argument("https://pokepygame.onrender.com", required=True, help="Hosted API URL, for example https://pokepy-api.onrender.com")
     parser.add_argument("--fallback", action="store_true", default=True, help="Keep local JSON fallback enabled")
     return parser.parse_args()
 
