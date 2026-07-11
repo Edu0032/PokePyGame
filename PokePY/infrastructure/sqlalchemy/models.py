@@ -1,9 +1,10 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Integer, JSON, String
+from sqlalchemy import JSON, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from PokePY.infrastructure.sqlalchemy.database import Base
+
 
 class LeaderboardScoreRecord(Base):
     __tablename__ = "leaderboard_scores"
@@ -12,6 +13,7 @@ class LeaderboardScoreRecord(Base):
     player_name: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
     elapsed_seconds: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+
 
 class PlayerProgressRecord(Base):
     __tablename__ = "player_progress"
@@ -37,6 +39,7 @@ class MultiplayerTicketRecord(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
+
 class MultiplayerMatchRecord(Base):
     __tablename__ = "multiplayer_matches"
 
@@ -49,6 +52,7 @@ class MultiplayerMatchRecord(Base):
     events: Mapped[list] = mapped_column(JSON, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
 
 class MultiplayerActionRecord(Base):
     __tablename__ = "multiplayer_actions"

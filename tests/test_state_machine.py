@@ -1,5 +1,4 @@
 import pytest
-
 from PokePY.domain.game_state import GameState
 from PokePY.game.state_machine import StateMachine
 

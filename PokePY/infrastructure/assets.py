@@ -5,6 +5,7 @@ import pygame
 from PokePY.config import ASSET_DIR, PLAYER_CONFIG, SCREEN_CONFIG
 from PokePY.data.assets import AVATAR_BASE, BACKPACK_ICON, BATTLE_BACKGROUNDS, SPRITE_MAP, ZONE_MAPS, ZONE_MASKS
 
+
 class AssetLoader:
     def __init__(self, base_dir: Path = ASSET_DIR):
         self.base_dir = base_dir

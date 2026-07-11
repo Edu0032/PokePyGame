@@ -1,22 +1,25 @@
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Protocol
 from uuid import uuid4
 
 from PokePY.domain.models import Pokemon
 
-class MultiplayerActionType(str, Enum):
+
+class MultiplayerActionType(StrEnum):
     ATTACK = "attack"
     SWITCH = "switch"
     HEAL = "heal"
     FLEE = "flee"
 
-class MatchStatus(str, Enum):
+
+class MatchStatus(StrEnum):
     WAITING = "waiting"
     READY = "ready"
     RUNNING = "running"
     FINISHED = "finished"
     CANCELED = "canceled"
+
 
 @dataclass(frozen=True)
 class PokemonSnapshot:
@@ -36,11 +39,12 @@ class PokemonSnapshot:
             type=pokemon.type,
             level=pokemon.level,
             hp=pokemon.hp,
-            max_hp=pokemon.max_hp,
+            max_hp=pokemon.max_hp or pokemon.hp,
             xp=pokemon.xp,
             attacks=tuple(pokemon.attacks),
             evolution_stage=pokemon.evolution_stage,
         )
+
 
 @dataclass(frozen=True)
 class PlayerSnapshot:
@@ -49,6 +53,8 @@ class PlayerSnapshot:
     team: tuple[PokemonSnapshot, ...]
     active_pokemon_index: int = 0
     items: dict[str, int] = field(default_factory=dict)
+    normal_attack_count: int = 0
+
 
 @dataclass(frozen=True)
 class MultiplayerAction:
@@ -58,12 +64,14 @@ class MultiplayerAction:
     payload: dict
     action_id: str = field(default_factory=lambda: uuid4().hex)
 
+
 @dataclass(frozen=True)
 class MatchTicket:
     ticket_id: str
     player_id: str
     status: MatchStatus
     match_id: str | None = None
+
 
 @dataclass(frozen=True)
 class MatchSnapshot:
@@ -75,18 +83,16 @@ class MatchSnapshot:
     turn_number: int = 1
     events: tuple[str, ...] = ()
 
+
 class MultiplayerGateway(Protocol):
-    def enter_queue(self, player: PlayerSnapshot) -> MatchTicket:
-        ...
+    def enter_queue(self, player: PlayerSnapshot) -> MatchTicket: ...
 
-    def ticket_status(self, ticket_id: str) -> MatchTicket | None:
-        ...
+    def ticket_status(self, ticket_id: str) -> MatchTicket | None: ...
 
-    def read_match(self, match_id: str) -> MatchSnapshot | None:
-        ...
+    def cancel_queue(self, ticket_id: str, player_id: str) -> MatchTicket: ...
 
-    def send_action(self, action: MultiplayerAction) -> MatchSnapshot:
-        ...
+    def read_match(self, match_id: str) -> MatchSnapshot | None: ...
 
-    def leave_match(self, match_id: str, player_id: str) -> MatchSnapshot:
-        ...
+    def send_action(self, action: MultiplayerAction) -> MatchSnapshot: ...
+
+    def leave_match(self, match_id: str, player_id: str) -> MatchSnapshot: ...

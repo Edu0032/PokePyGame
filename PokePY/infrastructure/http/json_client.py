@@ -25,21 +25,29 @@ class HttpJsonClient:
         self.base_url = base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds
 
-    def get(self, path: str, params: dict | None = None) -> dict | list:
-        return self._request("GET", path, params=params)
-
-    def post(self, path: str, payload: dict) -> dict | list:
-        return self._request("POST", path, json=payload)
-
-    def put(self, path: str, payload: dict) -> dict | list:
-        return self._request("PUT", path, json=payload)
-
-    def _request(self, method: str, path: str, **kwargs: Any) -> dict | list:
+    def request(
+        self,
+        method: str,
+        path: str,
+        *,
+        json_body: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+        allow_not_found: bool = False,
+    ) -> dict[str, Any] | list[Any] | None:
         url = self._url(path)
         try:
-            response = requests.request(method, url, timeout=self.timeout_seconds, **kwargs)
+            response = requests.request(
+                method,
+                url,
+                json=json_body,
+                params=params,
+                timeout=self.timeout_seconds,
+            )
         except requests.RequestException as error:
             raise ApiRequestError(method=method, url=url, message=str(error)) from error
+
+        if allow_not_found and response.status_code == 404:
+            return None
 
         try:
             response.raise_for_status()
@@ -52,8 +60,11 @@ class HttpJsonClient:
                 response_body=response.text,
             ) from error
 
+        if not response.content:
+            return {}
+
         try:
-            return response.json()
+            payload = response.json()
         except ValueError as error:
             raise ApiRequestError(
                 method=method,
@@ -62,6 +73,31 @@ class HttpJsonClient:
                 status_code=response.status_code,
                 response_body=response.text,
             ) from error
+
+        if not isinstance(payload, (dict, list)):
+            raise ApiRequestError(
+                method=method,
+                url=url,
+                message="Resposta JSON da API possui formato inesperado.",
+                status_code=response.status_code,
+                response_body=response.text,
+            )
+        return payload
+
+    def get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any] | list[Any]:
+        response = self.request("GET", path, params=params)
+        assert response is not None
+        return response
+
+    def post(self, path: str, payload: dict[str, Any]) -> dict[str, Any] | list[Any]:
+        response = self.request("POST", path, json_body=payload)
+        assert response is not None
+        return response
+
+    def put(self, path: str, payload: dict[str, Any]) -> dict[str, Any] | list[Any]:
+        response = self.request("PUT", path, json_body=payload)
+        assert response is not None
+        return response
 
     def _url(self, path: str) -> str:
         normalized_path = path if path.startswith("/") else f"/{path}"

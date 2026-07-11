@@ -16,7 +16,9 @@ def create_progress_router(progress_repository) -> APIRouter:
         try:
             saved_progress = progress_repository.save_progress(progress)
         except AttributeError as error:
-            raise HTTPException(status_code=501, detail="Repositório de progresso não suporta payload serializado.") from error
+            raise HTTPException(
+                status_code=501, detail="Repositório de progresso não suporta payload serializado."
+            ) from error
         except SQLAlchemyError as error:
             raise HTTPException(status_code=503, detail="Não foi possível salvar o progresso.") from error
         return PlayerProgressSaveResponse(saved=True, progress=progress_response(saved_progress))
@@ -26,7 +28,9 @@ def create_progress_router(progress_repository) -> APIRouter:
         try:
             progress = progress_repository.load_progress(player_id)
         except AttributeError as error:
-            raise HTTPException(status_code=501, detail="Repositório de progresso não suporta payload serializado.") from error
+            raise HTTPException(
+                status_code=501, detail="Repositório de progresso não suporta payload serializado."
+            ) from error
         except SQLAlchemyError as error:
             raise HTTPException(status_code=503, detail="Não foi possível carregar o progresso.") from error
         if progress is None:

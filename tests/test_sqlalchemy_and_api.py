@@ -12,7 +12,13 @@ def test_sqlalchemy_leaderboard_orders_scores(sqlalchemy_repositories):
 
 def test_sqlalchemy_progress_roundtrip(sqlalchemy_repositories):
     service = PlayerProgressService(sqlalchemy_repositories.progress)
-    player = Player(team=[Pokemon("Pikachu", "Elétrico", level=3, hp=80, max_hp=120, xp=20)], items={"Poção": 2}, x=15, y=30, zone_index=1)
+    player = Player(
+        team=[Pokemon("Pikachu", "Elétrico", level=3, hp=80, max_hp=120, xp=20)],
+        items={"Poção": 2},
+        x=15,
+        y=30,
+        zone_index=1,
+    )
     service.save("player-1", player, "Jogador 1")
     restored = service.load("player-1")
     assert restored is not None

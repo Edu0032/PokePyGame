@@ -29,7 +29,16 @@ class InventoryState:
         else:
             message = "Sem Repelentes!"
             color = (200, 60, 60)
-        draw_text(game.screen, game.fonts, message, SCREEN_CONFIG.width // 2, box_y + UI_CONFIG.inventory_height - 40, color=color, font=game.fonts.large, center=True)
+        draw_text(
+            game.screen,
+            game.fonts,
+            message,
+            SCREEN_CONFIG.width // 2,
+            box_y + UI_CONFIG.inventory_height - 40,
+            color=color,
+            font=game.fonts.large,
+            center=True,
+        )
         pygame.display.flip()
         pygame.time.wait(1000)
 
@@ -41,6 +50,15 @@ class InventoryState:
                     game.save_progress()
                 game.state = GameState.INVENTORY
             return
-        draw_text(game.screen, game.fonts, "Sem Poções!", SCREEN_CONFIG.width // 2, box_y + UI_CONFIG.inventory_height - 40, color=(200, 60, 60), font=game.fonts.large, center=True)
+        draw_text(
+            game.screen,
+            game.fonts,
+            "Sem Poções!",
+            SCREEN_CONFIG.width // 2,
+            box_y + UI_CONFIG.inventory_height - 40,
+            color=(200, 60, 60),
+            font=game.fonts.large,
+            center=True,
+        )
         pygame.display.flip()
         pygame.time.wait(1000)

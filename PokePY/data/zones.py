@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from PokePY.config import SCREEN_CONFIG
 
+
 @dataclass(frozen=True)
 class ZoneDefinition:
     name: str
@@ -10,6 +11,7 @@ class ZoneDefinition:
     encounter_rate: float
     item_rate: float
     grass_areas: tuple[tuple[int, int, int, int], ...]
+
 
 ZONE_DEFINITIONS = (
     ZoneDefinition(

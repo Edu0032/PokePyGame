@@ -1,7 +1,13 @@
 from dataclasses import dataclass, field
-from pathlib import Path
 
-from PokePY.distribution.runtime_config import config_bool, config_float, config_int, config_value, project_base_dir, save_dir
+from PokePY.distribution.runtime_config import (
+    config_bool,
+    config_float,
+    config_int,
+    config_value,
+    project_base_dir,
+    save_dir,
+)
 
 BASE_DIR = project_base_dir()
 ASSET_DIR = BASE_DIR
@@ -37,12 +43,16 @@ class BattleConfig:
     basic_damage_max: int = 30
     special_damage_min: int = 25
     special_damage_max: int = 45
+    special_charge_required: int = 2
+    special_damage_multiplier: float = 1.35
     enemy_damage_min: int = 5
     enemy_damage_max: int = 20
     boss_damage_multiplier: int = 5
     potion_heal: int = 50
     flee_chance: float = 0.5
     xp_multiplier: int = 50
+    base_xp_per_level: int = 100
+    xp_requirement_multiplier: float = 0.70
 
 
 @dataclass(frozen=True)
@@ -79,11 +89,11 @@ class LeaderboardConfig:
 
 @dataclass(frozen=True)
 class ApiConfig:
-    base_url: str = config_value("API_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
-    timeout_seconds: float = config_float("API_TIMEOUT_SECONDS", 5.0)
+    base_url: str = config_value("API_BASE_URL", "https://pokepygame.onrender.com").rstrip("/")
+    timeout_seconds: float = config_float("API_TIMEOUT_SECONDS", 65.0)
     host: str = config_value("API_HOST", "127.0.0.1")
     port: int = config_int("API_PORT", 8000)
-    use_json_fallback: bool = config_bool("API_JSON_FALLBACK", True)
+    use_json_fallback: bool = config_bool("API_JSON_FALLBACK", False)
 
 
 @dataclass(frozen=True)

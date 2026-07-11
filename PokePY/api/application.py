@@ -46,7 +46,7 @@ def create_app(
     app.add_middleware(
         CORSMiddleware,
         allow_origins=resolved_settings.cors_origins,
-        allow_credentials=True,
+        allow_credentials=resolved_settings.cors_allow_credentials and "*" not in resolved_settings.cors_origins,
         allow_methods=["*"],
         allow_headers=["*"],
     )

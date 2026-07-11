@@ -7,6 +7,7 @@ from PokePY.ui import colors
 from PokePY.ui.fonts import FontBook
 from PokePY.ui.widgets import draw_round_button, draw_text, is_button_clicked
 
+
 class InventoryView:
     def __init__(self, fonts: FontBook, assets: AssetLoader):
         self.fonts = fonts
@@ -30,9 +31,25 @@ class InventoryView:
             title_rect.topleft = (start_x + icon_rect.width + 10, box_y + 35)
             screen.blit(icon, icon_rect)
         screen.blit(title_surface, title_rect)
-        repel_rect = draw_round_button(screen, self.fonts, box_y + 120, colors.BAG_BLUE, f"Usar Repelente ({player.items.get('Repelente', 0)})", SCREEN_CONFIG.width // 2)
-        potion_rect = draw_round_button(screen, self.fonts, box_y + 200, colors.BAG_GREEN, f"Usar Poção ({player.items.get('Poção', 0)})", SCREEN_CONFIG.width // 2)
-        close_rect = draw_round_button(screen, self.fonts, box_y + 300, colors.BAG_RED, "Fechar Mochila", SCREEN_CONFIG.width // 2)
+        repel_rect = draw_round_button(
+            screen,
+            self.fonts,
+            box_y + 120,
+            colors.BAG_BLUE,
+            f"Usar Repelente ({player.items.get('Repelente', 0)})",
+            SCREEN_CONFIG.width // 2,
+        )
+        potion_rect = draw_round_button(
+            screen,
+            self.fonts,
+            box_y + 200,
+            colors.BAG_GREEN,
+            f"Usar Poção ({player.items.get('Poção', 0)})",
+            SCREEN_CONFIG.width // 2,
+        )
+        close_rect = draw_round_button(
+            screen, self.fonts, box_y + 300, colors.BAG_RED, "Fechar Mochila", SCREEN_CONFIG.width // 2
+        )
         return repel_rect, potion_rect, close_rect
 
     def select_pokemon_for_heal(self, screen: pygame.Surface, player: Player) -> str:
@@ -47,12 +64,39 @@ class InventoryView:
             box_rect = pygame.Rect(box_x, box_y, box_width, box_height)
             pygame.draw.rect(screen, colors.WHITE, box_rect, border_radius=25)
             pygame.draw.rect(screen, colors.PANEL_BORDER, box_rect, 3, border_radius=25)
-            draw_text(screen, self.fonts, "Escolha um Pokémon para curar:", SCREEN_CONFIG.width // 2, box_y + 40, color=(50, 50, 80), font=self.fonts.xl, center=True)
+            draw_text(
+                screen,
+                self.fonts,
+                "Escolha um Pokémon para curar:",
+                SCREEN_CONFIG.width // 2,
+                box_y + 40,
+                color=(50, 50, 80),
+                font=self.fonts.xl,
+                center=True,
+            )
             buttons = []
             for index, pokemon in enumerate(player.team):
-                rect = draw_round_button(screen, self.fonts, box_y + 100 + index * 60, (100, 150, 255), f"{pokemon.name} (HP: {pokemon.hp}/{pokemon.max_hp})", SCREEN_CONFIG.width // 2, width=350, height=45)
+                rect = draw_round_button(
+                    screen,
+                    self.fonts,
+                    box_y + 100 + index * 60,
+                    (100, 150, 255),
+                    f"{pokemon.name} (HP: {pokemon.hp}/{pokemon.max_hp})",
+                    SCREEN_CONFIG.width // 2,
+                    width=350,
+                    height=45,
+                )
                 buttons.append((rect, pokemon))
-            back_rect = draw_round_button(screen, self.fonts, box_y + 100 + len(player.team) * 60 + 50, colors.BAG_RED, "Voltar", SCREEN_CONFIG.width // 2, width=350, height=45)
+            back_rect = draw_round_button(
+                screen,
+                self.fonts,
+                box_y + 100 + len(player.team) * 60 + 50,
+                colors.BAG_RED,
+                "Voltar",
+                SCREEN_CONFIG.width // 2,
+                width=350,
+                height=45,
+            )
             pygame.display.flip()
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:

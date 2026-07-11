@@ -4,6 +4,7 @@ from pathlib import Path
 from PokePY.domain.models import Player
 from PokePY.services.player_progress_service import PlayerProgress, PlayerProgressService
 
+
 class JsonPlayerProgressRepository:
     def __init__(self, directory: Path):
         self.directory = directory

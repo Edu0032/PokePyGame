@@ -1,5 +1,6 @@
 from PokePY.infrastructure.assets import AssetLoader
 
+
 class MapMaskService:
     def __init__(self, assets: AssetLoader):
         self.assets = assets

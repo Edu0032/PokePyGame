@@ -2,7 +2,12 @@ from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy.exc import SQLAlchemyError
 
 from PokePY.api.converters import leaderboard_response
-from PokePY.api.schemas import LeaderboardEntryCreate, LeaderboardEntryResponse, LeaderboardPageResponse, LeaderboardSaveResponse
+from PokePY.api.schemas import (
+    LeaderboardEntryCreate,
+    LeaderboardEntryResponse,
+    LeaderboardPageResponse,
+    LeaderboardSaveResponse,
+)
 from PokePY.services.leaderboard_service import LeaderboardService
 
 
@@ -24,7 +29,6 @@ def create_leaderboard_router(leaderboard_service: LeaderboardService) -> APIRou
         except SQLAlchemyError as error:
             raise HTTPException(status_code=503, detail="Não foi possível carregar o placar.") from error
         return [leaderboard_response(entry) for entry in entries]
-
 
     @router.get("/page", response_model=LeaderboardPageResponse)
     def paginated_leaderboard(

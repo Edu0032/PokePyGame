@@ -9,13 +9,17 @@ from PokePY.ui import colors
 from PokePY.ui.fonts import FontBook
 from PokePY.ui.widgets import draw_text
 
+
 class PlayerSpriteAnimator:
     def __init__(self, assets: AssetLoader):
         self.assets = assets
         self.direction = "Frente"
         self.frame = 0
         self.timer_ms = 0
-        self.last_valid_sprite = self.assets.load_player_sprite(self.direction, self.frame)
+        self.last_valid_sprite = self.assets.load_player_sprite(
+            self.direction,
+            self.frame,
+        )
 
     def update(self, current_time_ms: int, moved: bool):
         if moved:
@@ -32,6 +36,7 @@ class PlayerSpriteAnimator:
             return self.last_valid_sprite
         self.last_valid_sprite = sprite
         return sprite
+
 
 class ExplorationView:
     def __init__(self, fonts: FontBook, assets: AssetLoader):
@@ -56,17 +61,57 @@ class ExplorationView:
         else:
             pygame.draw.circle(screen, colors.BLUE, (player.x, player.y), 10)
 
-    def draw_hud(self, screen: pygame.Surface, player: Player, zone_name: str, current_time_ms: int):
+    def draw_hud(
+        self,
+        screen: pygame.Surface,
+        player: Player,
+        zone_name: str,
+        current_time_ms: int,
+    ):
         hud_rect = pygame.Rect(20, 15, 260, 44)
-        pygame.draw.rect(screen, colors.HUD_SHADOW, hud_rect.move(2, 2), border_radius=14)
-        pygame.draw.rect(screen, colors.HUD_BACKGROUND, hud_rect, border_radius=14)
-        pygame.draw.rect(screen, colors.HUD_BORDER, hud_rect, 2, border_radius=14)
-        draw_text(screen, self.fonts, zone_name, hud_rect.x + 14, hud_rect.y + 10, color=colors.HUD_TEXT, font=self.fonts.small)
+        pygame.draw.rect(
+            screen,
+            colors.HUD_SHADOW,
+            hud_rect.move(2, 2),
+            border_radius=14,
+        )
+        pygame.draw.rect(
+            screen,
+            colors.HUD_BACKGROUND,
+            hud_rect,
+            border_radius=14,
+        )
+        pygame.draw.rect(
+            screen,
+            colors.HUD_BORDER,
+            hud_rect,
+            2,
+            border_radius=14,
+        )
+        draw_text(
+            screen,
+            self.fonts,
+            zone_name,
+            hud_rect.x + 14,
+            hud_rect.y + 10,
+            color=colors.HUD_TEXT,
+            font=self.fonts.small,
+        )
         if player.repel_active:
             remaining = max(0, player.repel_end_time_ms - current_time_ms)
             ratio = min(1.0, remaining / ITEM_CONFIG.repel_duration_ms)
-            pygame.draw.rect(screen, (190, 210, 240), (hud_rect.x + 14, hud_rect.y + 28, 110, 6), border_radius=4)
-            pygame.draw.rect(screen, (70, 140, 255), (hud_rect.x + 14, hud_rect.y + 28, int(110 * ratio), 6), border_radius=4)
+            pygame.draw.rect(
+                screen,
+                (190, 210, 240),
+                (hud_rect.x + 14, hud_rect.y + 28, 110, 6),
+                border_radius=4,
+            )
+            pygame.draw.rect(
+                screen,
+                (70, 140, 255),
+                (hud_rect.x + 14, hud_rect.y + 28, int(110 * ratio), 6),
+                border_radius=4,
+            )
             repel_text = f"Repelente ativo ({remaining // 1000}s)"
             repel_color = colors.REPEL_ACTIVE
         else:
@@ -76,7 +121,10 @@ class ExplorationView:
         rect = surface.get_rect(topright=(hud_rect.right - 10, hud_rect.y + 10))
         screen.blit(surface, rect)
 
-    def draw_backpack_button(self, screen: pygame.Surface) -> tuple[tuple[int, int], int]:
+    def draw_backpack_button(
+        self,
+        screen: pygame.Surface,
+    ) -> tuple[tuple[int, int], int]:
         center = (SCREEN_CONFIG.width - 80, 70)
         radius = UI_CONFIG.backpack_button_radius
         pygame.draw.circle(screen, (90, 140, 250), center, radius)
@@ -89,19 +137,68 @@ class ExplorationView:
             screen.blit(text, text.get_rect(center=center))
         return center, radius
 
-
     def draw_multiplayer_button(self, screen: pygame.Surface) -> pygame.Rect:
         rect = pygame.Rect(SCREEN_CONFIG.width - 185, 112, 130, 38)
         pygame.draw.rect(screen, (64, 86, 190), rect, border_radius=12)
         pygame.draw.rect(screen, colors.WHITE, rect, 2, border_radius=12)
-        draw_text(screen, self.fonts, "Online [M]", rect.centerx, rect.centery, color=colors.WHITE, font=self.fonts.normal, center=True)
+        draw_text(
+            screen,
+            self.fonts,
+            "Online [M]",
+            rect.centerx,
+            rect.centery,
+            color=colors.WHITE,
+            font=self.fonts.normal,
+            center=True,
+        )
         return rect
 
-    def click_hits_backpack(self, mouse_pos, button_center, radius: int) -> bool:
-        return math.hypot(mouse_pos[0] - button_center[0], mouse_pos[1] - button_center[1]) <= radius
+    def draw_ranking_button(self, screen: pygame.Surface) -> pygame.Rect:
+        rect = pygame.Rect(SCREEN_CONFIG.width - 185, 158, 130, 38)
+        pygame.draw.rect(screen, (230, 172, 38), rect, border_radius=12)
+        pygame.draw.rect(screen, colors.WHITE, rect, 2, border_radius=12)
+        draw_text(
+            screen,
+            self.fonts,
+            "Ranking [R]",
+            rect.centerx,
+            rect.centery,
+            color=colors.BLACK,
+            font=self.fonts.small,
+            center=True,
+        )
+        return rect
 
-    def draw_item_message(self, screen: pygame.Surface, message: str | None, timer_ms: int, current_time_ms: int) -> str | None:
+    def click_hits_backpack(
+        self,
+        mouse_pos,
+        button_center,
+        radius: int,
+    ) -> bool:
+        return (
+            math.hypot(
+                mouse_pos[0] - button_center[0],
+                mouse_pos[1] - button_center[1],
+            )
+            <= radius
+        )
+
+    def draw_item_message(
+        self,
+        screen: pygame.Surface,
+        message: str | None,
+        timer_ms: int,
+        current_time_ms: int,
+    ) -> str | None:
         if message and current_time_ms < timer_ms:
-            draw_text(screen, self.fonts, message, 50, SCREEN_CONFIG.height - 50, color=colors.BLACK, font=self.fonts.large)
+            draw_text(
+                screen,
+                self.fonts,
+                message,
+                50,
+                SCREEN_CONFIG.height - 50,
+                color=colors.BLACK,
+                font=self.fonts.large,
+            )
             return message
         return None

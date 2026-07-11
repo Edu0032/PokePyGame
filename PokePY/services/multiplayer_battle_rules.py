@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import random
 from dataclasses import replace
 
 from PokePY.config import BATTLE_CONFIG
+from PokePY.services.combat_rules import special_attack_damage
 from PokePY.services.multiplayer_contracts import (
     MatchSnapshot,
     MatchStatus,
@@ -10,14 +13,18 @@ from PokePY.services.multiplayer_contracts import (
     PlayerSnapshot,
     PokemonSnapshot,
 )
-from PokePY.services.multiplayer_errors import PlayerNotInMatchError
+from PokePY.services.multiplayer_errors import InvalidActionError, PlayerNotInMatchError
 
 
 class MultiplayerBattleRules:
     def __init__(self, rng: random.Random | None = None):
         self.rng = rng or random.Random()
 
-    def apply_action(self, match: MatchSnapshot, action: MultiplayerAction) -> MatchSnapshot:
+    def apply_action(
+        self,
+        match: MatchSnapshot,
+        action: MultiplayerAction,
+    ) -> MatchSnapshot:
         players = list(match.players)
         player_index = self.player_index(match, action.player_id)
         opponent_index = 1 - player_index
@@ -49,9 +56,12 @@ class MultiplayerBattleRules:
                 match,
                 status=MatchStatus.FINISHED,
                 players=tuple(players),
+                active_player_id=None,
                 winner_player_id=opponent.player_id,
                 events=tuple(events[-10:]),
             )
+        else:
+            raise InvalidActionError("Ação multiplayer desconhecida.")
 
         players[player_index] = actor
         players[opponent_index] = opponent
@@ -78,13 +88,39 @@ class MultiplayerBattleRules:
         attacker = self.active_pokemon(actor)
         defender = self.active_pokemon(opponent)
         if attacker is None or defender is None:
-            return actor, opponent, ["Ação inválida: Pokémon ativo ausente."]
+            raise InvalidActionError("Pokémon ativo ausente.")
 
-        normalized_attack_index = 0 if attack_index <= 0 else 1
-        min_damage = BATTLE_CONFIG.basic_damage_min if normalized_attack_index == 0 else BATTLE_CONFIG.special_damage_min
-        max_damage = BATTLE_CONFIG.basic_damage_max if normalized_attack_index == 0 else BATTLE_CONFIG.special_damage_max
-        damage = self.rng.randint(min_damage, max_damage) + max(0, attacker.level - 1) * 2
-        attack_name = "Ataque Básico" if normalized_attack_index == 0 else "Ataque Especial"
+        wants_special = attack_index > 0
+        required = BATTLE_CONFIG.special_charge_required
+        if wants_special and actor.normal_attack_count < required:
+            raise InvalidActionError("O ataque especial ainda não está carregado.")
+        if not wants_special and actor.normal_attack_count >= required:
+            raise InvalidActionError("O ataque especial está pronto e deve ser utilizado.")
+
+        if wants_special:
+            base_damage = (
+                self.rng.randint(
+                    BATTLE_CONFIG.special_damage_min,
+                    BATTLE_CONFIG.special_damage_max,
+                )
+                + max(0, attacker.level - 1) * 2
+            )
+            damage = special_attack_damage(base_damage)
+            attack_name = "Ataque Especial"
+            updated_actor = replace(actor, normal_attack_count=0)
+        else:
+            damage = (
+                self.rng.randint(
+                    BATTLE_CONFIG.basic_damage_min,
+                    BATTLE_CONFIG.basic_damage_max,
+                )
+                + max(0, attacker.level - 1) * 2
+            )
+            attack_name = "Ataque Básico"
+            updated_actor = replace(
+                actor,
+                normal_attack_count=min(required, actor.normal_attack_count + 1),
+            )
 
         defender_team = list(opponent.team)
         damaged_defender = replace(defender, hp=max(0, defender.hp - damage))
@@ -105,36 +141,49 @@ class MultiplayerBattleRules:
             team=tuple(defender_team),
             active_pokemon_index=new_active_index,
         )
-        return actor, updated_opponent, events
+        return updated_actor, updated_opponent, events
 
-    def apply_switch(self, actor: PlayerSnapshot, pokemon_index: int) -> tuple[PlayerSnapshot, list[str]]:
+    def apply_switch(
+        self,
+        actor: PlayerSnapshot,
+        pokemon_index: int,
+    ) -> tuple[PlayerSnapshot, list[str]]:
         if pokemon_index < 0 or pokemon_index >= len(actor.team):
-            return actor, ["Troca inválida."]
+            raise InvalidActionError("Troca inválida.")
         selected = actor.team[pokemon_index]
         if selected.hp <= 0:
-            return actor, [f"{selected.name} não pode batalhar."]
+            raise InvalidActionError(f"{selected.name} não pode batalhar.")
         if pokemon_index == actor.active_pokemon_index:
-            return actor, [f"{selected.name} já está em batalha."]
-        return replace(actor, active_pokemon_index=pokemon_index), [f"{actor.player_name} trocou para {selected.name}."]
+            raise InvalidActionError(f"{selected.name} já está em batalha.")
+        return (
+            replace(actor, active_pokemon_index=pokemon_index),
+            [f"{actor.player_name} trocou para {selected.name}."],
+        )
 
     def apply_heal(self, actor: PlayerSnapshot) -> tuple[PlayerSnapshot, list[str]]:
         potions = actor.items.get("Poção", 0)
         pokemon = self.active_pokemon(actor)
         if potions <= 0 or pokemon is None:
-            return actor, ["A cura falhou: sem poções."]
+            raise InvalidActionError("A cura falhou: sem poções.")
+        if pokemon.hp >= pokemon.max_hp:
+            raise InvalidActionError(f"{pokemon.name} já está com o HP máximo.")
 
         team = list(actor.team)
-        healed = replace(pokemon, hp=min(pokemon.max_hp, pokemon.hp + BATTLE_CONFIG.potion_heal))
+        healed = replace(
+            pokemon,
+            hp=min(pokemon.max_hp, pokemon.hp + BATTLE_CONFIG.potion_heal),
+        )
         team[actor.active_pokemon_index] = healed
         items = actor.items.copy()
         items["Poção"] = potions - 1
-        return replace(actor, team=tuple(team), items=items), [f"{actor.player_name} curou {pokemon.name}."]
+        return (
+            replace(actor, team=tuple(team), items=items),
+            [f"{actor.player_name} curou {pokemon.name}."],
+        )
 
     def winner(self, players: tuple[PlayerSnapshot, ...]) -> PlayerSnapshot | None:
         alive = [player for player in players if any(pokemon.hp > 0 for pokemon in player.team)]
-        if len(alive) == 1:
-            return alive[0]
-        return None
+        return alive[0] if len(alive) == 1 else None
 
     def player_index(self, match: MatchSnapshot, player_id: str) -> int:
         for index, player in enumerate(match.players):
@@ -142,11 +191,21 @@ class MultiplayerBattleRules:
                 return index
         raise PlayerNotInMatchError("Jogador não pertence a esta partida.")
 
-    def opponent(self, match: MatchSnapshot, player_id: str) -> PlayerSnapshot | None:
-        return next((player for player in match.players if player.player_id != player_id), None)
+    def opponent(
+        self,
+        match: MatchSnapshot,
+        player_id: str,
+    ) -> PlayerSnapshot | None:
+        return next(
+            (player for player in match.players if player.player_id != player_id),
+            None,
+        )
 
     def player_name(self, match: MatchSnapshot, player_id: str) -> str:
-        return next((player.player_name for player in match.players if player.player_id == player_id), "Jogador")
+        return next(
+            (player.player_name for player in match.players if player.player_id == player_id),
+            "Jogador",
+        )
 
     def active_pokemon(self, player: PlayerSnapshot) -> PokemonSnapshot | None:
         if not player.team:

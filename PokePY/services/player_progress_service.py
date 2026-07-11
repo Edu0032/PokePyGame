@@ -3,6 +3,7 @@ from dataclasses import asdict, dataclass
 from PokePY.domain.models import Player, Pokemon
 from PokePY.services.player_progress_contracts import PlayerProgressRepository
 
+
 @dataclass(frozen=True)
 class PokemonProgress:
     name: str
@@ -14,6 +15,7 @@ class PokemonProgress:
     attacks: list[str]
     evolution_stage: int
 
+
 @dataclass(frozen=True)
 class PlayerProgress:
     player_id: str
@@ -24,11 +26,14 @@ class PlayerProgress:
     items: dict[str, int]
     team: list[PokemonProgress]
 
+
 class PlayerProgressService:
     def __init__(self, repository: PlayerProgressRepository | None):
         self.repository = repository
 
     def save(self, player_id: str, player: Player, player_name: str | None = None) -> None:
+        if self.repository is None:
+            raise RuntimeError("PlayerProgressService requires a repository to save progress.")
         progress = self.to_progress(player_id, player_name or player_id, player)
         if hasattr(self.repository, "save_progress"):
             self.repository.save_progress(progress)
@@ -36,6 +41,8 @@ class PlayerProgressService:
         self.repository.save(player_id, player)
 
     def load(self, player_id: str) -> Player | None:
+        if self.repository is None:
+            raise RuntimeError("PlayerProgressService requires a repository to load progress.")
         if hasattr(self.repository, "load_progress"):
             progress = self.repository.load_progress(player_id)
             return self.from_progress(progress) if progress else None
@@ -81,7 +88,7 @@ class PlayerProgressService:
             type=pokemon.type,
             level=pokemon.level,
             hp=pokemon.hp,
-            max_hp=pokemon.max_hp,
+            max_hp=pokemon.max_hp or pokemon.hp,
             xp=pokemon.xp,
             attacks=pokemon.attacks.copy(),
             evolution_stage=pokemon.evolution_stage,

@@ -1,15 +1,38 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 
-from PokePY.infrastructure.sqlalchemy.models import MultiplayerActionRecord, MultiplayerMatchRecord, MultiplayerTicketRecord
-from PokePY.services.multiplayer_contracts import MatchSnapshot, MatchStatus, MatchTicket, MultiplayerAction, PlayerSnapshot
+from PokePY.infrastructure.sqlalchemy.models import (
+    MultiplayerActionRecord,
+    MultiplayerMatchRecord,
+    MultiplayerTicketRecord,
+)
+from PokePY.services.multiplayer_contracts import (
+    MatchSnapshot,
+    MatchStatus,
+    MatchTicket,
+    MultiplayerAction,
+    PlayerSnapshot,
+)
 from PokePY.services.multiplayer_serialization import MultiplayerSerializer
+
 
 class SQLAlchemyMultiplayerRepository:
     def __init__(self, session_factory):
         self.session_factory = session_factory
         self.serializer = MultiplayerSerializer()
+
+    def expire_stale_waiting_tickets(self, older_than_seconds: int) -> int:
+        cutoff = self._now() - timedelta(seconds=max(1, older_than_seconds))
+        with self.session_factory() as session:
+            result = session.execute(
+                update(MultiplayerTicketRecord)
+                .where(MultiplayerTicketRecord.status == MatchStatus.WAITING.value)
+                .where(MultiplayerTicketRecord.updated_at < cutoff)
+                .values(status=MatchStatus.CANCELED.value, updated_at=self._now())
+            )
+            session.commit()
+            return int(result.rowcount or 0)
 
     def find_waiting_ticket(self, excluded_player_id: str) -> MatchTicket | None:
         with self.session_factory() as session:
@@ -27,13 +50,25 @@ class SQLAlchemyMultiplayerRepository:
             record = session.execute(
                 select(MultiplayerTicketRecord)
                 .where(MultiplayerTicketRecord.player_id == player_id)
-                .where(MultiplayerTicketRecord.status.in_([MatchStatus.WAITING.value, MatchStatus.READY.value, MatchStatus.RUNNING.value]))
+                .where(
+                    MultiplayerTicketRecord.status.in_(
+                        [
+                            MatchStatus.WAITING.value,
+                            MatchStatus.READY.value,
+                            MatchStatus.RUNNING.value,
+                        ]
+                    )
+                )
                 .order_by(MultiplayerTicketRecord.updated_at.desc())
                 .limit(1)
             ).scalar_one_or_none()
             return self._ticket_from_record(record) if record else None
 
-    def save_ticket(self, ticket: MatchTicket, player: PlayerSnapshot | None = None) -> MatchTicket:
+    def save_ticket(
+        self,
+        ticket: MatchTicket,
+        player: PlayerSnapshot | None = None,
+    ) -> MatchTicket:
         now = self._now()
         with self.session_factory() as session:
             record = session.get(MultiplayerTicketRecord, ticket.ticket_id)
@@ -136,7 +171,10 @@ class SQLAlchemyMultiplayerRepository:
             )
             session.commit()
 
-    def _ticket_from_record(self, record: MultiplayerTicketRecord) -> MatchTicket:
+    def _ticket_from_record(
+        self,
+        record: MultiplayerTicketRecord,
+    ) -> MatchTicket:
         return MatchTicket(
             ticket_id=record.ticket_id,
             player_id=record.player_id,
@@ -145,4 +183,4 @@ class SQLAlchemyMultiplayerRepository:
         )
 
     def _now(self) -> datetime:
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)

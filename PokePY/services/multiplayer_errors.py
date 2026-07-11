@@ -12,3 +12,11 @@ class InvalidTurnError(MultiplayerError):
 
 class PlayerNotInMatchError(MultiplayerError):
     pass
+
+
+class InvalidActionError(MultiplayerError):
+    pass
+
+
+class TicketNotFoundError(MultiplayerError):
+    pass

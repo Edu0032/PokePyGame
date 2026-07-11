@@ -1,5 +1,6 @@
 from PokePY.services.leaderboard_contracts import LeaderboardEntry, LeaderboardRepository
 
+
 class FallbackLeaderboardRepository:
     def __init__(self, primary: LeaderboardRepository, fallback: LeaderboardRepository):
         self.primary = primary

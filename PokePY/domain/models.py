@@ -2,6 +2,8 @@ from dataclasses import dataclass, field
 
 from PokePY.config import ITEM_CONFIG, PLAYER_CONFIG
 from PokePY.data.pokemon_catalog import DEFAULT_ATTACKS
+from PokePY.services.combat_rules import xp_required_for_level
+
 
 @dataclass
 class Pokemon:
@@ -14,7 +16,7 @@ class Pokemon:
     attacks: list[str] = field(default_factory=lambda: DEFAULT_ATTACKS.copy())
     evolution_stage: int = 0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.max_hp is None:
             self.max_hp = self.hp
 
@@ -30,31 +32,37 @@ class Pokemon:
             evolution_stage=self.evolution_stage,
         )
 
-    def gain_xp(self, amount: int):
+    def gain_xp(self, amount: int) -> None:
+        assert self.max_hp is not None
         self.xp += amount
-        while self.xp >= self.level * 100:
-            self.xp -= self.level * 100
+        requirement = xp_required_for_level(self.level)
+        while self.xp >= requirement:
+            self.xp -= requirement
             self.level += 1
             self.max_hp += 20
             self.hp = min(self.hp + 20, self.max_hp)
             if self.level % 3 == 0 and self.evolution_stage < 1:
                 self.evolve()
+            requirement = xp_required_for_level(self.level)
 
-    def evolve(self):
+    def evolve(self) -> None:
+        assert self.max_hp is not None
         self.evolution_stage += 1
         self.max_hp += 50
         self.hp = min(self.hp + 50, self.max_hp)
         if "Ataque Especial" not in self.attacks:
             self.attacks.insert(1, "Ataque Especial")
 
-    def take_damage(self, damage: int):
+    def take_damage(self, damage: int) -> None:
         self.hp = max(0, self.hp - max(0, damage))
 
-    def heal(self, amount: int):
+    def heal(self, amount: int) -> None:
+        assert self.max_hp is not None
         self.hp = min(self.max_hp, self.hp + max(0, amount))
 
     def is_alive(self) -> bool:
         return self.hp > 0
+
 
 @dataclass
 class Player:
@@ -94,13 +102,13 @@ class Player:
         self.items[item_name] = self.items.get(item_name, 0) + 1
         return True
 
-    def activate_pending_repel(self, current_time_ms: int):
+    def activate_pending_repel(self, current_time_ms: int) -> None:
         if not self.repel_pending:
             return
         self.repel_active = True
         self.repel_end_time_ms = current_time_ms + ITEM_CONFIG.repel_duration_ms
         self.repel_pending = False
 
-    def update_repel(self, current_time_ms: int):
+    def update_repel(self, current_time_ms: int) -> None:
         if self.repel_active and current_time_ms > self.repel_end_time_ms:
             self.repel_active = False

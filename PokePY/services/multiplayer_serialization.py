@@ -11,6 +11,7 @@ from PokePY.services.multiplayer_contracts import (
     PokemonSnapshot,
 )
 
+
 class MultiplayerSerializer:
     def pokemon_to_dict(self, pokemon: PokemonSnapshot) -> dict:
         payload = asdict(pokemon)
@@ -36,6 +37,7 @@ class MultiplayerSerializer:
             "team": [self.pokemon_to_dict(pokemon) for pokemon in player.team],
             "active_pokemon_index": player.active_pokemon_index,
             "items": {str(key): int(value) for key, value in player.items.items()},
+            "normal_attack_count": int(player.normal_attack_count),
         }
 
     def player_from_dict(self, payload: dict) -> PlayerSnapshot:
@@ -45,6 +47,7 @@ class MultiplayerSerializer:
             team=tuple(self.pokemon_from_dict(pokemon) for pokemon in payload.get("team", [])),
             active_pokemon_index=int(payload.get("active_pokemon_index", 0)),
             items={str(key): int(value) for key, value in payload.get("items", {}).items()},
+            normal_attack_count=int(payload.get("normal_attack_count", 0)),
         )
 
     def ticket_to_dict(self, ticket: MatchTicket) -> dict:
@@ -103,7 +106,12 @@ class MultiplayerSerializer:
             events=tuple(str(event) for event in payload.get("events", [])),
         )
 
-    def snapshot_from_player(self, player_id: str, player_name: str, player: Player) -> PlayerSnapshot:
+    def snapshot_from_player(
+        self,
+        player_id: str,
+        player_name: str,
+        player: Player,
+    ) -> PlayerSnapshot:
         active_index = 0
         first_alive = player.first_alive_pokemon()
         if first_alive is not None:
@@ -117,9 +125,14 @@ class MultiplayerSerializer:
             team=tuple(PokemonSnapshot.from_pokemon(pokemon) for pokemon in player.team),
             active_pokemon_index=active_index,
             items=player.items.copy(),
+            normal_attack_count=0,
         )
 
-    def apply_snapshot_to_player(self, snapshot: PlayerSnapshot, player: Player) -> None:
+    def apply_snapshot_to_player(
+        self,
+        snapshot: PlayerSnapshot,
+        player: Player,
+    ) -> None:
         player.team = [
             Pokemon(
                 name=pokemon.name,

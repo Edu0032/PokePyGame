@@ -1,22 +1,31 @@
+from __future__ import annotations
+
 import sys
 import time
 
 import pygame
 
-from PokePY.config import API_CONFIG, LEADERBOARD_CONFIG, PLAYER_CONFIG, SCREEN_CONFIG
-from PokePY.data.zones import ZONE_DEFINITIONS
+from PokePY.config import API_CONFIG, SCREEN_CONFIG
+from PokePY.data.zones import ZONE_DEFINITIONS, ZoneDefinition
 from PokePY.domain.factories import PokemonFactory
 from PokePY.domain.game_state import GameState
-from PokePY.domain.models import Player
+from PokePY.domain.models import Player, Pokemon
 from PokePY.domain.session import GameSession
 from PokePY.game.state_machine import StateMachine
 from PokePY.game.states import build_state_handlers
 from PokePY.infrastructure.assets import AssetLoader
 from PokePY.infrastructure.map_mask import MapMaskService
-from PokePY.infrastructure.repository_factory import create_leaderboard_repository, create_multiplayer_gateway, create_player_progress_repository
+from PokePY.infrastructure.repository_factory import (
+    create_leaderboard_repository,
+    create_multiplayer_gateway,
+    create_player_progress_repository,
+)
 from PokePY.services.battle_engine import BattleEngine
+from PokePY.services.combat_rules import BattleChargeTracker
 from PokePY.services.encounter_service import EncounterService
+from PokePY.services.leaderboard_contracts import LeaderboardEntry
 from PokePY.services.leaderboard_service import LeaderboardService
+from PokePY.services.multiplayer_contracts import MatchSnapshot, MatchTicket
 from PokePY.services.multiplayer_serialization import MultiplayerSerializer
 from PokePY.services.player_progress_service import PlayerProgressService
 from PokePY.services.time_formatter import format_seconds
@@ -36,7 +45,18 @@ from PokePY.ui.widgets import draw_text
 
 
 class Game:
-    def __init__(self):
+    state: GameState
+    current_enemy: Pokemon | None
+    current_battle_pokemon: Pokemon | None
+    selected_pokemon: list[Pokemon]
+    multiplayer_ticket: MatchTicket | None
+    multiplayer_match: MatchSnapshot | None
+    ranking_entries: list[LeaderboardEntry]
+    current_zone_index: int
+    game_finished: bool
+    typed_player_name: str
+
+    def __init__(self) -> None:
         pygame.init()
         self.screen = pygame.display.set_mode((SCREEN_CONFIG.width, SCREEN_CONFIG.height))
         pygame.display.set_caption(SCREEN_CONFIG.title)
@@ -47,7 +67,7 @@ class Game:
         self._reset_runtime_state()
 
     @property
-    def current_zone(self):
+    def current_zone(self) -> ZoneDefinition:
         return ZONE_DEFINITIONS[self.current_zone_index]
 
     def run(self) -> None:
@@ -67,11 +87,23 @@ class Game:
             self.session.finish()
             elapsed_text = format_seconds(self.session.elapsed_seconds)
             try:
-                result = self.leaderboard_service.register_completion(self.session.player_name, self.session.elapsed_seconds)
-                position_text = f"Posição no ranking: #{result.position}" if result.position else "Tempo salvo no ranking."
-                self.leaderboard_subtitle = f"{self.session.player_name} zerou em {format_seconds(result.entry.elapsed_seconds)}. {position_text}"
+                result = self.leaderboard_service.register_completion(
+                    self.session.player_name,
+                    self.session.elapsed_seconds,
+                )
+                position_text = (
+                    f"Posição no ranking: #{result.position}" if result.position else "Tempo salvo no ranking."
+                )
+                self.leaderboard_subtitle = (
+                    f"{self.session.player_name} zerou em "
+                    f"{format_seconds(result.entry.elapsed_seconds)}. {position_text}"
+                )
             except Exception as error:
-                self.leaderboard_subtitle = f"{self.session.player_name} zerou em {elapsed_text}, mas o ranking online não foi salvo. Verifique {API_CONFIG.base_url}/health/ready."
+                self.leaderboard_subtitle = (
+                    f"{self.session.player_name} zerou em {elapsed_text}, mas o "
+                    "ranking online não foi salvo. Verifique "
+                    f"{API_CONFIG.base_url}/health/ready."
+                )
                 print(f"[PokePY leaderboard] Falha ao salvar placar online: {error}")
             self.leaderboard_title = "Jogo concluído!"
             self.leaderboard_footer = "ENTER/R para jogar novamente ou ESC/Q para ver os créditos e sair"
@@ -81,7 +113,9 @@ class Game:
     def finish_failed_run(self) -> None:
         self.session.finish()
         self.leaderboard_title = "Fim de tentativa"
-        self.leaderboard_subtitle = f"Sua tentativa durou {format_seconds(self.session.elapsed_seconds)}. Só conclusões entram no ranking."
+        self.leaderboard_subtitle = (
+            f"Sua tentativa durou {format_seconds(self.session.elapsed_seconds)}. Só conclusões entram no ranking."
+        )
         self.leaderboard_footer = "ENTER/R para tentar novamente ou ESC/Q para sair"
         self.state = GameState.LEADERBOARD
 
@@ -95,9 +129,13 @@ class Game:
 
     def save_progress(self) -> None:
         try:
-            self.progress_service.save(self.session.player_id, self.player, self.session.player_name)
-        except Exception:
-            return
+            self.progress_service.save(
+                self.session.player_id,
+                self.player,
+                self.session.player_name,
+            )
+        except Exception as error:
+            print(f"[PokePY progress] Falha ao salvar progresso: {error}")
 
     def fade_message(self, message: str) -> None:
         for alpha in range(0, 300, 5):
@@ -105,7 +143,15 @@ class Game:
             surface.set_alpha(alpha)
             surface.fill(colors.BLACK)
             self.screen.blit(surface, (0, 0))
-            draw_text(self.screen, self.fonts, message, 150, 280, color=colors.WHITE, font=self.fonts.xl)
+            draw_text(
+                self.screen,
+                self.fonts,
+                message,
+                150,
+                280,
+                color=colors.WHITE,
+                font=self.fonts.xl,
+            )
             pygame.display.flip()
             pygame.time.wait(5)
         pygame.time.wait(1000)
@@ -117,14 +163,27 @@ class Game:
             surface.fill(colors.BLACK)
             self.screen.blit(surface, (0, 0))
             if alpha > 100:
-                draw_text(self.screen, self.fonts, message, SCREEN_CONFIG.width // 2, SCREEN_CONFIG.height // 2, color=colors.WHITE, font=self.fonts.xl, center=True)
+                draw_text(
+                    self.screen,
+                    self.fonts,
+                    message,
+                    SCREEN_CONFIG.width // 2,
+                    SCREEN_CONFIG.height // 2,
+                    color=colors.WHITE,
+                    font=self.fonts.xl,
+                    center=True,
+                )
             pygame.display.flip()
             pygame.time.wait(20)
 
     def fade_in(self) -> None:
         for alpha in range(255, 0, -15):
             self.exploration_view.draw_map(self.screen, self.current_zone.name)
-            self.exploration_view.draw_player(self.screen, self.player, self.sprite_animator.last_valid_sprite)
+            self.exploration_view.draw_player(
+                self.screen,
+                self.player,
+                self.sprite_animator.last_valid_sprite,
+            )
             surface = pygame.Surface((SCREEN_CONFIG.width, SCREEN_CONFIG.height))
             surface.set_alpha(alpha)
             surface.fill(colors.BLACK)
@@ -161,7 +220,7 @@ class Game:
         self.game_over_view = GameOverView(self.fonts)
         self.timer_view = RunTimerView(self.fonts)
         self.multiplayer_lobby_view = MultiplayerLobbyView(self.fonts)
-        self.multiplayer_battle_view = MultiplayerBattleView(self.fonts)
+        self.multiplayer_battle_view = MultiplayerBattleView(self.fonts, self.assets)
 
     def _reset_runtime_state(self) -> None:
         self.session = GameSession()
@@ -172,18 +231,22 @@ class Game:
         self.current_zone_index = 0
         self.current_enemy = None
         self.current_battle_pokemon = None
+        self.story_battle_charge = BattleChargeTracker()
         self.final_boss_defeated = False
         self.final_boss_triggered = False
-        self.item_message = None
+        self.item_message: str | None = None
         self.item_message_timer_ms = 0
         self.last_item_pickup_time = 0.0
         self.inventory_full_flag = False
         self.multiplayer_ticket = None
         self.multiplayer_match = None
-        self.multiplayer_error = None
+        self.multiplayer_error: str | None = None
         self.multiplayer_status_text = "Clique para entrar na fila online."
         self.multiplayer_last_poll_ms = 0
         self.multiplayer_switch_mode = False
+        self.ranking_entries = []
+        self.ranking_error: str | None = None
+        self.ranking_loaded = False
         self.leaderboard_title = "Placar"
         self.leaderboard_subtitle = "Melhores tempos de conclusão"
         self.leaderboard_footer = "ENTER/R para jogar novamente ou ESC/Q para sair"

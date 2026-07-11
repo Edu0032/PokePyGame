@@ -6,6 +6,7 @@ from PokePY.config import SCREEN_CONFIG
 from PokePY.ui import colors
 from PokePY.ui.fonts import FontBook
 
+
 class CreditsScreen:
     def __init__(self, fonts: FontBook):
         self.fonts = fonts
@@ -48,7 +49,7 @@ class CreditsScreen:
             screen.blit(fade_surface, (0, 0))
             pygame.display.flip()
             pygame.time.wait(30)
-        y_offset = SCREEN_CONFIG.height + 50
+        y_offset: float = SCREEN_CONFIG.height + 50
         while True:
             screen.fill(colors.BLACK)
             for index, line in enumerate(self.lines):

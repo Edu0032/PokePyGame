@@ -1,6 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
-class GameState(str, Enum):
+
+class GameState(StrEnum):
     PLAYER_NAME = "player_name"
     SELECT_TEAM = "select_team"
     EXPLORE = "explore"
@@ -9,10 +10,12 @@ class GameState(str, Enum):
     SELECT_IN_BATTLE = "select_in_battle"
     GAME_OVER = "game_over"
     LEADERBOARD = "leaderboard"
+    RANKING = "ranking"
     MULTIPLAYER_LOBBY = "multiplayer_lobby"
     MULTIPLAYER_BATTLE = "multiplayer_battle"
 
-class BattleResult(str, Enum):
+
+class BattleResult(StrEnum):
     WIN = "win"
     LOSE = "lose"
     FLED = "fled"

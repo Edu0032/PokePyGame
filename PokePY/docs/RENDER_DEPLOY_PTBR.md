@@ -1,102 +1,74 @@
-# Deploy da API no Render com banco Supabase
+# Deploy da API no Render com Supabase
 
-## Arquitetura de produção
-
-```text
-Executável PokePY -> API FastAPI no Render -> PostgreSQL no Supabase
-```
-
-O executável não contém banco de dados. O cliente envia requisições HTTP para a API hospedada. A API aplica regras de ranking, progresso e multiplayer e persiste os dados no PostgreSQL.
-
-## Pré-requisitos
-
-- Repositório `PokePyGame` no GitHub.
-- Conta no Render.
-- Projeto criado no Supabase.
-- URL do **Session Pooler** do Supabase.
-
-## 1. Configurar banco no Supabase
-
-No Supabase, abrir o projeto e acessar:
+## Arquitetura
 
 ```text
-Connect -> Session Pooler
+Executável PokePY -> FastAPI no Render -> Session Pooler -> PostgreSQL no Supabase
 ```
 
-Usar a URL no formato:
+## Banco
+
+No Supabase, copiar a URL do **Session Pooler**, porta `5432`, e adicionar SSL:
 
 ```text
-postgresql://postgres.PROJECT_REF:SENHA@aws-1-us-east-2.pooler.supabase.com:5432/postgres?sslmode=require
+postgresql://postgres.PROJECT_REF:SENHA@HOST.pooler.supabase.com:5432/postgres?sslmode=require
 ```
 
-Pontos importantes:
+A conexão direta gratuita pode depender de IPv6. O pooler fornece a alternativa compatível sem colocar credenciais no repositório.
 
-- A conexão direta `db.PROJECT_REF.supabase.co` usa IPv6 por padrão em projetos gratuitos.
-- A API no Render deve usar o pooler, que funciona para conexões IPv4.
-- A porta recomendada para backend persistente é `5432` no **Session Pooler**.
-- A senha do banco nunca deve ser enviada ao GitHub.
+## Serviço Render
 
-## 2. Configurar serviço web no Render
-
-Criar um **Web Service** apontando para o repositório `PokePyGame`.
-
-Configurações principais:
+Criar um Web Service ligado ao repositório.
 
 ```text
 Runtime: Python
 Branch: main
-Root Directory: vazio, se o projeto estiver na raiz
+Root Directory: vazio
 ```
 
-Build Command:
+Build:
 
 ```bash
 pip install --upgrade pip && pip install -r requirements-api.txt
 ```
 
-Start Command:
+Start:
 
 ```bash
 alembic upgrade head && uvicorn PokePY.api.main:app --host 0.0.0.0 --port $PORT
 ```
 
-O arquivo `render.yaml` já mantém essa configuração no repositório.
-
-## 3. Variáveis de ambiente no Render
-
-Adicionar em **Environment**:
+## Variáveis
 
 ```text
 PYTHON_VERSION=3.11.15
-POKEPY_DATABASE_URL=postgresql://postgres.PROJECT_REF:SENHA@aws-1-us-east-2.pooler.supabase.com:5432/postgres?sslmode=require
-DATABASE_URL=postgresql://postgres.PROJECT_REF:SENHA@aws-1-us-east-2.pooler.supabase.com:5432/postgres?sslmode=require
+DATABASE_URL=URL_DO_SESSION_POOLER
+POKEPY_DATABASE_URL=URL_DO_SESSION_POOLER
 POKEPY_AUTO_CREATE_TABLES=false
 POKEPY_CORS_ORIGINS=["*"]
 POKEPY_ENV=production
 POKEPY_LOG_LEVEL=INFO
 ```
 
-`DATABASE_URL` e `POKEPY_DATABASE_URL` podem receber o mesmo valor. A aplicação prioriza `POKEPY_DATABASE_URL`, mas aceita `DATABASE_URL` como fallback.
+A URL do banco existe somente no Render.
 
-## 4. Fazer deploy limpo
+Com wildcard CORS, a aplicação usa `allow_credentials=false`. Isso evita uma combinação insegura e desnecessária para o cliente desktop.
 
-Depois de alterar variáveis ou versão do Python:
+## Deploy da versão 5
+
+As regras de matchmaking e combate são executadas na API. Após enviar a versão 5 ao GitHub, aguardar o auto-deploy do Render ou usar:
+
+```text
+Manual Deploy -> Deploy latest commit
+```
+
+Mudanças de dependências ou versão do Python podem exigir:
 
 ```text
 Manual Deploy -> Clear build cache & deploy
 ```
 
-Esse passo evita que o Render reutilize dependências ou versão de Python antigas.
-
-## 5. Validar a API
-
-Com a URL pública da API:
-
-```text
-https://pokepygame.onrender.com
-```
-
-Testar no navegador:
+## Verificação
 
 ```text
 https://pokepygame.onrender.com/health
@@ -104,55 +76,53 @@ https://pokepygame.onrender.com/health/ready
 https://pokepygame.onrender.com/docs
 ```
 
-Resultado esperado para `/health`:
+Resultado esperado de prontidão:
 
 ```json
-{"status":"ok"}
+{
+  "status": "ok",
+  "database": "ready"
+}
 ```
 
-`/health/ready` valida API e banco. `/docs` abre a documentação interativa da API.
+Teste pelo repositório:
 
-## 6. Configurar o cliente para usar a API hospedada
+```powershell
+python scripts/check_online_api.py
+```
 
-No computador local, na raiz do projeto:
+## Tabelas
 
-```bash
+As migrações Alembic criam:
+
+```text
+leaderboard_scores
+player_progress
+multiplayer_tickets
+multiplayer_matches
+multiplayer_actions
+```
+
+Não é necessário configurar RLS para este fluxo. O cliente não usa a API pública do Supabase; somente o backend se conecta ao PostgreSQL com a connection string privada.
+
+## Cliente oficial
+
+```powershell
 python scripts/configure_api_url.py --api-url "https://pokepygame.onrender.com"
 ```
 
-Esse comando atualiza:
+Configuração esperada:
 
-```text
-pokepy_client.json
-packaging/pokepy_client.json
+```json
+{
+  "backend_mode": "api",
+  "leaderboard_backend": "api",
+  "progress_backend": "api",
+  "multiplayer_backend": "api",
+  "api_base_url": "https://pokepygame.onrender.com",
+  "api_timeout_seconds": 65.0,
+  "api_json_fallback": false
+}
 ```
 
-Esses arquivos podem ir para o GitHub porque contêm apenas a URL pública da API.
-
-## 7. Testar o cliente contra a API hospedada
-
-Windows:
-
-```powershell
-.\scripts\run_game_online.ps1 -ApiUrl "https://pokepygame.onrender.com"
-```
-
-Linux/macOS:
-
-```bash
-./scripts/run_game_online.sh "https://pokepygame.onrender.com"
-```
-
-Testes práticos recomendados:
-
-1. Abrir o jogo.
-2. Criar treinador.
-3. Vencer ou perder uma partida.
-4. Verificar ranking.
-5. Abrir duas instâncias do jogo.
-6. Entrar no modo online nas duas.
-7. Confirmar matchmaking e envio de ações.
-
-## 8. Observação sobre plano gratuito
-
-Serviços gratuitos podem ficar inativos após algum tempo sem uso. A primeira requisição após inatividade pode demorar alguns segundos. O cliente usa timeout e fallback local para preservar a experiência durante testes.
+O fallback permanece desativado na release para que falhas online não sejam ocultadas por arquivos locais.

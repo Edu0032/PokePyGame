@@ -1,12 +1,14 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from PokePY.services.leaderboard_contracts import LeaderboardEntry, LeaderboardRepository
+
 
 @dataclass
 class LeaderboardSaveResult:
     entry: LeaderboardEntry
     position: int | None
+
 
 class LeaderboardService:
     def __init__(self, repository: LeaderboardRepository):
@@ -16,7 +18,7 @@ class LeaderboardService:
         entry = LeaderboardEntry(
             player_name=self._normalize_player_name(player_name),
             elapsed_seconds=max(0, int(elapsed_seconds)),
-            created_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            created_at=datetime.now(UTC).isoformat(timespec="seconds"),
         )
         saved_entry = self.repository.save_score(entry)
         return LeaderboardSaveResult(entry=saved_entry, position=self.find_position(saved_entry))

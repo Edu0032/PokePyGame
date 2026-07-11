@@ -1,9 +1,10 @@
-
 def test_matchmaking_pairs_two_players(api_client, multiplayer_player_payload):
     first = api_client.post("/multiplayer/matchmaking/join", json={"player": multiplayer_player_payload("p1", "Ana")})
     assert first.status_code == 201
     assert first.json()["status"] == "waiting"
-    second = api_client.post("/multiplayer/matchmaking/join", json={"player": multiplayer_player_payload("p2", "Bruno")})
+    second = api_client.post(
+        "/multiplayer/matchmaking/join", json={"player": multiplayer_player_payload("p2", "Bruno")}
+    )
     assert second.status_code == 201
     assert second.json()["status"] == "ready"
     assert second.json()["match_id"] is not None
@@ -14,7 +15,9 @@ def test_matchmaking_pairs_two_players(api_client, multiplayer_player_payload):
 
 def test_multiplayer_action_changes_turn_and_hp(api_client, multiplayer_player_payload):
     api_client.post("/multiplayer/matchmaking/join", json={"player": multiplayer_player_payload("p1", "Ana")})
-    ticket = api_client.post("/multiplayer/matchmaking/join", json={"player": multiplayer_player_payload("p2", "Bruno")}).json()
+    ticket = api_client.post(
+        "/multiplayer/matchmaking/join", json={"player": multiplayer_player_payload("p2", "Bruno")}
+    ).json()
     match = api_client.get(f"/multiplayer/matches/{ticket['match_id']}").json()
     active_player_id = match["active_player_id"]
     response = api_client.post(
@@ -30,9 +33,13 @@ def test_multiplayer_action_changes_turn_and_hp(api_client, multiplayer_player_p
 
 def test_rejects_action_outside_player_turn(api_client, multiplayer_player_payload):
     api_client.post("/multiplayer/matchmaking/join", json={"player": multiplayer_player_payload("p1", "Ana")})
-    ticket = api_client.post("/multiplayer/matchmaking/join", json={"player": multiplayer_player_payload("p2", "Bruno")}).json()
+    ticket = api_client.post(
+        "/multiplayer/matchmaking/join", json={"player": multiplayer_player_payload("p2", "Bruno")}
+    ).json()
     match = api_client.get(f"/multiplayer/matches/{ticket['match_id']}").json()
-    inactive_player_id = next(player["player_id"] for player in match["players"] if player["player_id"] != match["active_player_id"])
+    inactive_player_id = next(
+        player["player_id"] for player in match["players"] if player["player_id"] != match["active_player_id"]
+    )
     response = api_client.post(
         f"/multiplayer/matches/{ticket['match_id']}/actions",
         json={"player_id": inactive_player_id, "action_type": "attack", "payload": {"attack_index": 0}},
@@ -42,7 +49,9 @@ def test_rejects_action_outside_player_turn(api_client, multiplayer_player_paylo
 
 def test_repeated_action_id_is_idempotent(api_client, multiplayer_player_payload):
     api_client.post("/multiplayer/matchmaking/join", json={"player": multiplayer_player_payload("p1", "Ana")})
-    ticket = api_client.post("/multiplayer/matchmaking/join", json={"player": multiplayer_player_payload("p2", "Bruno")}).json()
+    ticket = api_client.post(
+        "/multiplayer/matchmaking/join", json={"player": multiplayer_player_payload("p2", "Bruno")}
+    ).json()
     match = api_client.get(f"/multiplayer/matches/{ticket['match_id']}").json()
     action_payload = {
         "player_id": match["active_player_id"],
@@ -55,3 +64,37 @@ def test_repeated_action_id_is_idempotent(api_client, multiplayer_player_payload
     assert first.status_code == 200
     assert second.status_code == 200
     assert first.json()["match"] == second.json()["match"]
+
+
+def test_same_display_name_players_receive_a_match(
+    api_client,
+    multiplayer_player_payload,
+):
+    first = api_client.post(
+        "/multiplayer/matchmaking/join",
+        json={"player": multiplayer_player_payload("unique-a", "Mesmo Nome")},
+    ).json()
+    second = api_client.post(
+        "/multiplayer/matchmaking/join",
+        json={"player": multiplayer_player_payload("unique-b", "Mesmo Nome")},
+    ).json()
+    assert first["ticket_id"] != second["ticket_id"]
+    assert second["status"] == "ready"
+    first_status = api_client.get(f"/multiplayer/matchmaking/status/{first['ticket_id']}").json()
+    assert first_status["match_id"] == second["match_id"]
+
+
+def test_waiting_ticket_can_be_canceled(
+    api_client,
+    multiplayer_player_payload,
+):
+    ticket = api_client.post(
+        "/multiplayer/matchmaking/join",
+        json={"player": multiplayer_player_payload("cancel-player", "Ana")},
+    ).json()
+    response = api_client.post(
+        f"/multiplayer/matchmaking/{ticket['ticket_id']}/cancel",
+        json={"player_id": "cancel-player"},
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "canceled"

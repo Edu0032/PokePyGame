@@ -82,3 +82,28 @@ def test_unknown_player_raises_domain_error():
         assert "Jogador" in str(error)
     else:
         raise AssertionError("Expected PlayerNotInMatchError")
+
+
+def test_two_normal_attacks_charge_special_and_special_resets_charge():
+    rules = MultiplayerBattleRules(random.Random(1))
+    actor = player("p1", "Ana")
+    opponent = player("p2", "Bruno")
+    actor, opponent, _ = rules.apply_attack(actor, opponent, 0)
+    actor, opponent, _ = rules.apply_attack(actor, opponent, 0)
+    assert actor.normal_attack_count == 2
+    actor, _, _ = rules.apply_attack(actor, opponent, 1)
+    assert actor.normal_attack_count == 0
+
+
+def test_special_attack_is_rejected_before_charge():
+    rules = MultiplayerBattleRules(random.Random(1))
+    try:
+        rules.apply_attack(
+            player("p1", "Ana"),
+            player("p2", "Bruno"),
+            1,
+        )
+    except Exception as error:
+        assert "carregado" in str(error)
+    else:
+        raise AssertionError("Expected special attack to be rejected")

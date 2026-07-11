@@ -4,8 +4,7 @@ from PokePY.domain.game_state import GameState
 
 
 class GameStateHandler(Protocol):
-    def update(self, game, current_time_ms: int, current_time_seconds: float) -> None:
-        ...
+    def update(self, game, current_time_ms: int, current_time_seconds: float) -> None: ...
 
 
 class StateMachine:

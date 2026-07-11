@@ -5,7 +5,7 @@ import json
 import sys
 import time
 from pathlib import Path
-from urllib import request, error
+from urllib import error, request
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CLIENT_CONFIG_PATH = PROJECT_ROOT / "pokepy_client.json"
@@ -62,4 +62,4 @@ if __name__ == "__main__":
         main()
     except Exception as exc:
         print(f"ERRO: {exc}", file=sys.stderr)
-        raise SystemExit(1)
+        raise SystemExit(1) from exc

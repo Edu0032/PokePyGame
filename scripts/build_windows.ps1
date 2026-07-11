@@ -1,9 +1,15 @@
 param(
-  [string]$ApiUrl = "http://127.0.0.1:8000"
+    [string]$ApiUrl = "https://pokepygame.onrender.com",
+    [switch]$Fallback,
+    [switch]$Console
 )
 
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements-build.txt
-python scripts/build_executable.py --api-url $ApiUrl
+$ErrorActionPreference = "Stop"
+$arguments = @(
+    "scripts/build_executable.py",
+    "--api-url", $ApiUrl,
+    "--onedir"
+)
+if ($Fallback) { $arguments += "--fallback" }
+if ($Console) { $arguments += "--console" }
+python @arguments

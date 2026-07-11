@@ -19,7 +19,9 @@ def register_exception_handlers(app: FastAPI) -> None:
         logger.exception("Database error while processing %s %s", request.method, request.url.path)
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            content=ApiErrorResponse(detail="Serviço de banco de dados indisponível.", code="database_unavailable").model_dump(),
+            content=ApiErrorResponse(
+                detail="Serviço de banco de dados indisponível.", code="database_unavailable"
+            ).model_dump(),
         )
 
     @app.exception_handler(Exception)

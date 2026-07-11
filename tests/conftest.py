@@ -3,13 +3,12 @@ from dataclasses import dataclass
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.engine import Engine
-
 from PokePY.api.application import create_app
 from PokePY.infrastructure.sqlalchemy.database import create_database_engine, create_session_factory, create_tables
 from PokePY.infrastructure.sqlalchemy.leaderboard_repository import SQLAlchemyLeaderboardRepository
 from PokePY.infrastructure.sqlalchemy.multiplayer_repository import SQLAlchemyMultiplayerRepository
 from PokePY.infrastructure.sqlalchemy.player_progress_repository import SQLAlchemyPlayerProgressRepository
+from sqlalchemy.engine import Engine
 
 
 @dataclass(frozen=True)

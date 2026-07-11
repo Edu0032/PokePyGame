@@ -1,10 +1,11 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
 from PokePY.infrastructure.sqlalchemy.models import LeaderboardScoreRecord
 from PokePY.services.leaderboard_contracts import LeaderboardEntry
+
 
 class SQLAlchemyLeaderboardRepository:
     def __init__(self, session_factory: sessionmaker, max_entries: int = 100):
@@ -64,18 +65,18 @@ class SQLAlchemyLeaderboardRepository:
     def _entry_from_record(self, record: LeaderboardScoreRecord) -> LeaderboardEntry:
         created_at = record.created_at
         if created_at.tzinfo is None:
-            created_at = created_at.replace(tzinfo=timezone.utc)
+            created_at = created_at.replace(tzinfo=UTC)
         return LeaderboardEntry(
             player_name=record.player_name,
             elapsed_seconds=record.elapsed_seconds,
-            created_at=created_at.astimezone(timezone.utc).isoformat(timespec="seconds"),
+            created_at=created_at.astimezone(UTC).isoformat(timespec="seconds"),
         )
 
     def _parse_datetime(self, value: str) -> datetime:
         try:
             parsed = datetime.fromisoformat(value)
         except ValueError:
-            parsed = datetime.now(timezone.utc)
+            parsed = datetime.now(UTC)
         if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=timezone.utc)
-        return parsed.astimezone(timezone.utc)
+            parsed = parsed.replace(tzinfo=UTC)
+        return parsed.astimezone(UTC)

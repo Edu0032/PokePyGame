@@ -1,5 +1,6 @@
 import pygame
 
+
 class FontBook:
     def __init__(self):
         if not pygame.font.get_init():

@@ -1,10 +1,11 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy.orm import sessionmaker
 
 from PokePY.domain.models import Player
 from PokePY.infrastructure.sqlalchemy.models import PlayerProgressRecord
 from PokePY.services.player_progress_service import PlayerProgress, PlayerProgressService
+
 
 class SQLAlchemyPlayerProgressRepository:
     def __init__(self, session_factory: sessionmaker):
@@ -32,7 +33,7 @@ class SQLAlchemyPlayerProgressRepository:
                     y=progress.y,
                     items=payload["items"],
                     team=payload["team"],
-                    updated_at=datetime.now(timezone.utc),
+                    updated_at=datetime.now(UTC),
                 )
                 session.add(record)
             else:
@@ -42,7 +43,7 @@ class SQLAlchemyPlayerProgressRepository:
                 record.y = progress.y
                 record.items = payload["items"]
                 record.team = payload["team"]
-                record.updated_at = datetime.now(timezone.utc)
+                record.updated_at = datetime.now(UTC)
             session.commit()
         return progress
 

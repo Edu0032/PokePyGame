@@ -1,141 +1,136 @@
 # Build e distribuição do executável
 
-## Objetivo
-
-Distribuir o PokePY para usuários que não querem instalar Python, dependências, API local ou banco de dados.
-
-A versão distribuível usa a arquitetura:
+## Arquitetura da distribuição
 
 ```text
-PokePY.exe -> API hospedada no Render -> PostgreSQL no Supabase
+PokePY.exe -> HTTPS -> API no Render -> PostgreSQL no Supabase
 ```
 
-O executável contém:
+O pacote contém cliente, assets, dependências e configuração pública. Banco, senha e `DATABASE_URL` não fazem parte do executável.
 
-- código do cliente;
-- assets do jogo;
-- dependências necessárias para o cliente;
-- `pokepy_client.json` com a URL pública da API.
+## Pré-requisitos
 
-O executável não contém banco de dados.
-
-## Pré-requisitos no Windows
-
-Instalar:
-
+- Windows 10 ou 11;
 - Python 3.11;
 - Git;
-- ambiente virtual Python;
-- dependências de build do projeto.
+- repositório atualizado;
+- API respondendo em `https://pokepygame.onrender.com/health/ready`.
 
-Na raiz do projeto:
+## Preparar ambiente
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install --upgrade pip
+python -m pip install --upgrade pip
 pip install -r requirements-build.txt
 ```
 
-## Configurar URL da API
-
-A API pública usada nesta versão é:
-
-```text
-https://pokepygame.onrender.com
-```
-
-Gravar a URL nos arquivos de configuração:
+## Verificar API
 
 ```powershell
-python scripts/configure_api_url.py --api-url "https://pokepygame.onrender.com"
+python scripts/check_online_api.py
 ```
 
-Arquivos atualizados:
-
-```text
-pokepy_client.json
-packaging/pokepy_client.json
-```
-
-## Gerar executável
-
-Recomendação para jogos com assets: usar distribuição em pasta (`--onedir`). Esse formato facilita o carregamento de imagens e reduz problemas comuns de empacotamento.
+## Gerar build oficial
 
 ```powershell
 python scripts/build_executable.py --api-url "https://pokepygame.onrender.com" --onedir
 ```
 
-O resultado fica em:
+Não é necessário editar `configure_api_url.py` ou `build_executable.py`. A URL é um argumento do comando.
 
-```text
-dist/
-```
+O script:
 
-Normalmente será criada uma pasta parecida com:
+1. rejeita localhost em build público;
+2. remove `build/`, a distribuição anterior e arquivos `.spec`;
+3. cria `pokepy_client.json` com backend `api`, timeout 65 e fallback desativado;
+4. incorpora configuração e assets pelo PyInstaller;
+5. grava uma cópia da configuração ao lado do executável;
+6. gera `BUILD_INFO.json`;
+7. compacta a distribuição;
+8. calcula SHA-256.
+
+## Saídas
 
 ```text
 dist/PokePY/
+  PokePY.exe
+  pokepy_client.json
+  BUILD_INFO.json
+  _internal/
+
+release/
+  PokePY-Windows.zip
+  PokePY-Windows.zip.sha256
 ```
 
-## Testar antes de publicar
+A pasta completa é necessária no modo `--onedir`. Não distribua somente `PokePY.exe`.
 
-Copiar a pasta gerada para outro local e testar como usuário final:
+## Por que `--onedir`
 
-1. Abrir `PokePY.exe`.
-2. Verificar se a janela do jogo abre.
-3. Criar nome de treinador.
-4. Jogar até registrar ranking ou progresso.
-5. Abrir duas instâncias.
-6. Entrar no multiplayer nas duas.
-7. Confirmar se a API online recebe as ações.
+Jogos carregam imagens, mapas e bibliotecas nativas. A distribuição em pasta reduz tempo de inicialização e torna o carregamento de assets mais previsível. O usuário recebe um único ZIP, extrai e abre o executável.
 
-Também testar a API no navegador:
+## Validação
+
+```powershell
+python scripts/validate_release.py --distribution dist/PokePY
+```
+
+O validador confirma:
+
+- existência da distribuição;
+- presença de `pokepy_client.json`;
+- URL HTTPS hospedada;
+- ausência de localhost;
+- backend multiplayer em modo API;
+- fallback oficial desativado;
+- presença do manifesto.
+
+Teste manual:
+
+1. extrair o ZIP em uma pasta nova;
+2. abrir `PokePY.exe`;
+3. abrir ranking;
+4. concluir uma run e conferir `leaderboard_scores`;
+5. abrir duas instâncias;
+6. usar o mesmo nome nas duas;
+7. confirmar pareamento e combate;
+8. confirmar básico, especial, cura e troca.
+
+## Build de desenvolvimento local
+
+Somente para testes:
+
+```powershell
+python scripts/build_executable.py --api-url "http://127.0.0.1:8000" --onedir --allow-local-api
+```
+
+Não publique essa saída.
+
+## Publicação
+
+`dist/` e `release/` permanecem no `.gitignore`. Binários não devem entrar no histórico normal do repositório.
+
+Código:
+
+```powershell
+git add .
+git commit -m "release: finalize multiplayer combat and Windows packaging"
+git push
+```
+
+Tag:
+
+```powershell
+git tag v5.0.0
+git push origin v5.0.0
+```
+
+Na página **Releases**, criar a versão `v5.0.0` e anexar:
 
 ```text
-https://pokepygame.onrender.com/health
-https://pokepygame.onrender.com/health/ready
-https://pokepygame.onrender.com/docs
+release/PokePY-Windows.zip
+release/PokePY-Windows.zip.sha256
 ```
 
-## Compactar para distribuição
-
-Compactar a pasta gerada dentro de `dist/`, por exemplo:
-
-```text
-PokePY-Windows.zip
-```
-
-O arquivo compactado deve conter a pasta ou os arquivos necessários para abrir o jogo.
-
-## Onde publicar o executável
-
-O local recomendado é **GitHub Releases**, não a raiz do repositório.
-
-Fluxo recomendado:
-
-1. Fazer commit das alterações do código e da configuração.
-2. Enviar para o GitHub.
-3. Criar uma tag, por exemplo `v1.0.0`.
-4. Criar uma Release no GitHub.
-5. Anexar `PokePY-Windows.zip` como asset da Release.
-
-Exemplo de texto para a Release:
-
-```text
-PokePY v1.0.0 - Windows
-
-Versão executável do cliente PokePY para Windows.
-A aplicação já vem configurada para consumir a API hospedada em https://pokepygame.onrender.com.
-Não é necessário instalar Python, banco de dados ou executar a API localmente.
-```
-
-## Atualizar README após publicar
-
-Depois de criar a Release, o README deve apontar para:
-
-```text
-https://github.com/Edu0032/PokePyGame/releases/latest
-```
-
-Esse link sempre direciona para a versão mais recente publicada.
+O README usa `/releases/latest`, portanto aponta automaticamente para a release mais nova.
