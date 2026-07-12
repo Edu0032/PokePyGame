@@ -25,14 +25,6 @@ O cliente nunca recebe credenciais do banco. A URL pública da API é incorporad
 
 > Projeto fan-made e educacional, sem vínculo oficial com Pokémon. Assets de terceiros devem ser substituídos antes de qualquer uso comercial.
 
-## Download para Windows
-
-[**Baixar a versão mais recente do PokePY**](https://github.com/Edu0032/PokePyGame/releases/latest)
-
-A distribuição oficial é entregue como `PokePY-Windows.zip`. Basta extrair a pasta e abrir `PokePY.exe`. Python, Docker e banco de dados não são necessários para jogar.
-
-A primeira conexão pode demorar quando o serviço gratuito do Render está iniciando.
-
 ## Funcionalidades
 
 - exploração em três zonas;
@@ -176,29 +168,6 @@ Gravação de teste no ranking:
 ```powershell
 python scripts/check_online_api.py --write-test-score
 ```
-
-## Gerar a distribuição
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements-build.txt
-python scripts/build_executable.py --api-url "https://pokepygame.onrender.com" --onedir
-python scripts/validate_release.py --distribution dist/PokePY
-```
-
-O build remove saídas antigas e gera:
-
-```text
-dist/PokePY/                         pasta executável
-release/PokePY-Windows.zip           arquivo para GitHub Release
-release/PokePY-Windows.zip.sha256    checksum
-```
-
-O build público recusa URLs `localhost` e incorpora `pokepy_client.json` na raiz do bundle. Não é necessário editar a URL dentro dos scripts.
-
-Guia: [`PokePY/docs/EXECUTABLE_PTBR.md`](PokePY/docs/EXECUTABLE_PTBR.md).
 
 ## Qualidade
 
